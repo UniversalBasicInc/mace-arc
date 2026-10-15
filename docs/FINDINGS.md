@@ -42,11 +42,17 @@ A5000 lane (2026-10-15, quiet host), same geometries, `results/ab/`:
 | Si512 | 1.6e-06 | 6.2e-07 | 3.0e-15 |
 | Si1728 | 1.6e-06 | 6.5e-07 | — |
 
-The A5000 and the B70 sit at the same place: ~2e-06 relative to the CPU in fp32 (the dtype floor is
-3e-03 to 7e-06 depending on the system), machine epsilon in fp64. cuEquivariance's kernels change
-the forces by 6e-07 relative, i.e. a reordering of fp32 sums, not a numerical difference. Direct
-B70-vs-A5000 `.npz` comparison on this harness is pending the next B70 boot (the 2026-10-05 B70 run
-predates `mace_ab.py`).
+Direct B70 vs A5000, same `.npz` harness, B70 re-run 2026-10-15 after the 6.18 boot (`results/ab/b70_*`):
+
+| System | B70 vs A5000, fp32 (rel RMS) | B70 vs A5000, fp64 (rel RMS) | B70 vs CPU, fp32 | B70 fp32 vs own fp64 |
+|---|---|---|---|---|
+| Si64 | 1.8e-06 | 3.8e-15 | 2.2e-06 | 4.5e-06 |
+| Si512 | 1.6e-06 | 3.4e-15 | 2.0e-06 | 7.3e-06 |
+| Si1728 | 1.7e-06 | — | 2.1e-06 | — |
+
+The two vendors agree with each other as closely as either agrees with the CPU: ~2e-06 relative in
+fp32 (below each card's own fp32-vs-fp64 floor), 4e-15 in fp64. cuEquivariance's kernels move the
+A5000's forces by 6e-07 relative, a reordering of fp32 sums. The device is not in the answer.
 
 ## Finding 3 — the B70 does real FP64, and it is cheap here
 
@@ -66,8 +72,9 @@ Median force call, Si512 / Si1728, fp32:
 | EPYC 7742, 128 thr, cpu32 | 148 ms | 454 ms | 1184 ms | quiet host, 2026-10-15 (repeat) |
 | RTX A5000, cuda32 (e3nn) | 39 ms | 43 ms | 128 ms | quiet host, 2026-10-15 |
 | RTX A5000, cuda32 + cuEquivariance | 42 ms | 43 ms | 71 ms | quiet host, 2026-10-15 |
+| Arc Pro B70, xpu32 (repeat) | 32 ms | 45 ms | 126 ms | quiet host, 2026-10-15, kernel 6.18 |
 
-fp64, Si512: **B70 110 ms, A5000 230 ms, EPYC 644–671 ms.**
+fp64, Si512: **B70 107–110 ms, A5000 230 ms, EPYC 644–671 ms.** B70 Si64 fp64 = fp32 (32 ms): free.
 
 Read: on the plain e3nn path **the Arc Pro B70 and the RTX A5000 are the same speed** (Si512 44 vs 43 ms,
 Si1728 128 vs 128 ms), both ~10× the 128-thread EPYC. That path is launch-bound (Python-driven, hundreds
@@ -90,12 +97,19 @@ GPU board power sampled at 5 Hz while hammering the force call for 60 s (`mace_p
 |---|---|---|---|---|---|---|
 | RTX A5000, e3nn | 54 | 18 | 168 | 9.1 | 8.1 | 1.60 |
 | RTX A5000, cuEquivariance | 57 | 20 | 84 | 4.8 | 3.7 | 1.52 |
-| Arc Pro B70, e3nn | pending the next 6.18 boot (`xe` hwmon, `run_b70_chain.sh`) | | | | | |
+| Arc Pro B70, e3nn | 46 | 47 | 159 | 7.3 | 5.2 | 1.88 |
+| Arc Pro B70, e3nn, **fp64** | 107 | 47 | 158 | 16.9 | 11.9 | 0.81 |
 
-Si1728 fp32 on the A5000 e3nn path: 129 ms/call, 179 W under load, 23.2 J/call board (0.67 ns/day).
+Si1728 fp32: A5000 e3nn 129 ms/call, 179 W, 23.2 J/call board (0.67 ns/day); B70 125 ms/call, 175 W, 22.0 J/call (0.69 ns/day).
 
-cuEquivariance halves the energy per step at equal speed: the fused kernels leave the GPU half-idle
-rather than busy with launch overhead. The B70 row is the number the solar pitch wants.
+On the path both vendors run (e3nn), the B70 does the same step in the same time for **20 % less energy**
+than the A5000 (7.3 vs 9.1 J at Si512, 22.0 vs 23.2 J at Si1728). cuEquivariance, NVIDIA-only, halves the A5000's
+energy at equal speed: its fused kernels leave the GPU half-idle instead of busy with launch overhead, which says
+an equivalent fused tensor-product path for XPU is where the next 2× on Arc is. Full-double MD on the B70 costs
+16.9 J/step at Si512, less than fp32 on the A5000's e3nn path costs per 1.9 steps.
+The B70's idle board power reads 47 W on the `xe` counter (the A5000 reads 18 W on `nvidia-smi`); the two sensors
+are not the same thing (card energy counter vs reported board draw), so compare the *above-idle* column across vendors
+with that in mind.
 
 ## Finding 6 — MD stability: NVE drift and thermostatted NVT
 
@@ -118,9 +132,9 @@ Langevin NVT (ASE, friction 0.01/fs, 300 K, 1 fs, 10 000 steps = 10 ps, Si512 fp
 |---|---|---|---|---|---|
 | A5000 e3nn | 299.7 ± 12.4 | −5.3305 ± 0.0016 | 0 after equilibration | 18.0 | 1.55 |
 | A5000 cuEquivariance | 299.7 ± 12.4 | −5.3305 ± 0.0016 | 0 after equilibration | 19.5 | 1.69 |
-| B70 e3nn | pending the next 6.18 boot (`run_b70_chain.sh`) | | | | |
+| B70 e3nn | 299.7 ± 12.4 | −5.3305 ± 0.0016 | 0 after equilibration | 21.3 | 1.84 |
 
-Same seeds, same thermostat: the two A5000 lanes produce statistically identical trajectories (the one
+Same seeds, same thermostat: the three lanes produce statistically identical trajectories (the one
 "spike" is the first 100-step window, the 16.6 eV equilibration from the cold lattice). Production-style
 MD on Si512 with a foundation potential sits at 1.5–1.7 ns/day on one card.
 
@@ -173,12 +187,23 @@ integrator, pair list and I/O now live in C++ and only the model forward crosses
    and grompp reports "pair-cutoff is 0.0".
 5. The DPC++ build: oneAPI `setvars.sh` dies under `set -u`; source it first.
 
-**XPU tier.** `install-xpu` (SYCL DPC++ 2026.1, Xe2 cluster flags, oneMKL FFT, libtorch 2.14.1+xpu, this patch) is
-built and installed in the container; the run waits for the host's 6.18 boot (`scripts/run_b70_chain.sh` does the
-whole lane in one command, including this case on the B70).
+**XPU tier — MACE in GROMACS on an Intel GPU (B70, 2026-10-15).** `install-xpu` = GROMACS 2026.3 SYCL (DPC++ 2026.1,
+Xe2 cluster flags, oneMKL FFT) + libtorch 2.14.1+xpu + this patch, in the container, host kernel 6.18. Same Si512 case,
+`GMX_NN_DEVICE=gpu` (→ `torch::kXPU` through the patch):
+
+| NNPot device | ΔE vs ASE/MACE | force RMS diff (rel) | NVT 300 K, 10 ps | ns/day | ms/step |
+|---|---|---|---|---|---|
+| Arc Pro B70 (XPU) | −0.04 kJ/mol (−0.001 meV/atom) | 6.7e-03 kJ/mol/nm (1.2e-05) | 299.6 ± 10.5 K | **2.93** | 29.5 |
+| RTX A5000 (CUDA) | +0.05 kJ/mol | 6.7e-03 kJ/mol/nm (1.2e-05) | 300.2 ± 10.7 K | 2.84 | 30.5 |
+
+GROMACS runs a foundation ML potential on an Intel GPU with the same forces, the same thermostat statistics
+and the same step time as on the NVIDIA card. This is, to our knowledge, the first time GROMACS's NNPot
+interface has driven a model on a non-NVIDIA/AMD GPU; the patch is 40 lines.
 
 ## Operational notes
 
+- `xe` hwmon exposes cumulative energy counters (`energy1_input` = card, `energy2_input` = package, µJ), not an
+  instantaneous `power1_input`; `mace_power.py` differentiates the card counter over 0.5 s windows.
 - The B70 lane lives in a container because Intel ships the compute runtime for Ubuntu 26.04 only; the
   Debian 12 host cannot load it. Only `/dev/dri` crosses the boundary.
 - Keep `HOME`/`XDG_CACHE_HOME` on the data disk: the MACE model cache and uv's Python land in `~/.cache`,
@@ -193,7 +218,5 @@ simply absent on XPU.
 
 ## Open
 
-- B70 re-run of `mace_ab.py`/`mace_power.py`/`mace_nvt.py` with the new harness (`scripts/run_b70_chain.sh`) after the next 6.18 boot.
-- GROMACS XPU lane run on the B70 (built; the run is not kernel-independent).
 - Propose upstream, when cleared: GROMACS `pair-shifts` typo + XPU device selection; a MACE docs note that `device="xpu"` works.
 - Larger systems / MACE-MP medium; torch.compile on XPU; memory ceiling on the 32 GB B70.

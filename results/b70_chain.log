@@ -1,0 +1,332 @@
+xmrig resident? load 64.84
++ /work/venv/bin/python mace_ab.py --device xpu --tag b70 --out /work/results/ab
+/work/venv/lib/python3.12/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+torch 2.14.1+xpu | xpu = Intel(R) Arc(TM) Pro B70 Graphics | host a4e58a26fb36 6.18.53-jarvis
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+WARNING:root:Default dtype float32 does not match model dtype float64, converting models to float32.
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float32 for MACECalculator, which is faster but less accurate. Recommended for MD. Use float64 for geometry optimization.
+  b70          Si64_float32     median    32.00 ms  min    31.67 ms  E -341.588501 eV
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization.
+  b70          Si64_float64     median    32.16 ms  min    31.95 ms  E -341.588471 eV
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+WARNING:root:Default dtype float32 does not match model dtype float64, converting models to float32.
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float32 for MACECalculator, which is faster but less accurate. Recommended for MD. Use float64 for geometry optimization.
+  b70          Si512_float32    median    44.85 ms  min    43.90 ms  E -2731.979492 eV
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization.
+  b70          Si512_float64    median   106.88 ms  min   106.53 ms  E -2731.969385 eV
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+WARNING:root:Default dtype float32 does not match model dtype float64, converting models to float32.
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float32 for MACECalculator, which is faster but less accurate. Recommended for MD. Use float64 for geometry optimization.
+  b70          Si1728_float32   median   125.82 ms  min   124.77 ms  E -9221.036133 eV
+AB-DONE
++ /work/venv/bin/python mace_power.py --device xpu --tag b70 --n 4 --seconds 60
+/work/venv/lib/python3.12/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+WARNING:root:Default dtype float32 does not match model dtype float64, converting models to float32.
+/work/scripts/mace_power.py:55: RuntimeWarning: Mean of empty slice
+  ws = np.array([w for _, w in s.v]); load_w = float(ws.mean())
+/work/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float32 for MACECalculator, which is faster but less accurate. Recommended for MD. Use float64 for geometry optimization.
+Traceback (most recent call last):
+  File "/work/scripts/mace_power.py", line 57, in <module>
+    f"GPU power idle {idle_w:.1f} W, under load {load_w:.1f} W (max {ws.max():.1f}) | "
+                                                                     ^^^^^^^^
+  File "/work/venv/lib/python3.12/site-packages/numpy/_core/_methods.py", line 41, in _amax
+    return umr_maximum(a, axis, None, out, keepdims, initial, where)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: zero-size array to reduction operation maximum which has no identity
++ /work/venv/bin/python mace_power.py --device xpu --tag b70 --n 6 --seconds 60
+/work/venv/lib/python3.12/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+WARNING:root:Default dtype float32 does not match model dtype float64, converting models to float32.
+/work/scripts/mace_power.py:55: RuntimeWarning: Mean of empty slice
+  ws = np.array([w for _, w in s.v]); load_w = float(ws.mean())
+/work/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float32 for MACECalculator, which is faster but less accurate. Recommended for MD. Use float64 for geometry optimization.
+Traceback (most recent call last):
+  File "/work/scripts/mace_power.py", line 57, in <module>
+    idle = Sampler(); idle.start(); time.sleep(5); idle.go = False; idle.join(1)
+                                                                           ^^^^^^
+  File "/work/venv/lib/python3.12/site-packages/numpy/_core/_methods.py", line 41, in _amax
+    return umr_maximum(a, axis, None, out, keepdims, initial, where)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: zero-size array to reduction operation maximum which has no identity
++ /work/venv/bin/python mace_nvt.py --device xpu --tag b70 --n 4 --ps 10
+/work/venv/lib/python3.12/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/work/scripts/mace_nvt.py:19: DeprecationWarning: Use thermalize_momenta
+  MaxwellBoltzmannDistribution(atoms, temperature_K=a.T, rng=np.random.RandomState(42)); Stationary(atoms)
+/work/venv/lib/python3.12/site-packages/mace/calculators/mace.py:226: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/work/venv/lib/python3.12/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+WARNING:root:Default dtype float32 does not match model dtype float64, converting models to float32.
+/work/venv/lib/python3.12/site-packages/ase/md/langevin.py:102: FutureWarning: The implementation of `fixcm=True` in `Langevin` does not strictly sample the correct NVT distributions. The deviations are typically small for large systems but can be more pronounced for small systems. Use `fixcm=False` together with `ase.constraints.FixCom`. `fixcm` is deprecated since ASE 3.28.0 and will be removed in a future release.
+  warnings.warn(msg, FutureWarning)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using Materials Project MACE for MACECalculator with /work/.cache/mace/20231210mace128L0_energy_epoch249model
+Using float32 for MACECalculator, which is faster but less accurate. Recommended for MD. Use float64 for geometry optimization.
+b70 Si512 float32 Langevin 300 K: 10000 steps (10 ps) | T(2nd half) 299.7 ± 12.4 K | Epot/atom 2nd half -5.3305 ± 0.0016 eV | max |dEp| between logs 16.629 eV | spikes>10xmed 1 | 21.3 steps/s = 1.838 ns/day
+NVT-DONE
++ '[' -f /data/mace-arc/gmx/install-xpu/bin/GMXRC ']'
++ source /opt/intel/oneapi/setvars.sh --force
++ source /data/mace-arc/gmx/install-xpu/bin/GMXRC
+++ echo
+++ grep -q csh
+++ . /data/mace-arc/gmx/install-xpu/bin/GMXRC.bash
++++ test -n ''
++++ old_IFS=$' \t\n'
++++ IFS=:
++++ OLD_GMXLDLIB=
++++ OLD_GMXBIN=
++++ OLD_GMXMAN=
++++ GMXPREFIX=/data/mace-arc/gmx/install-xpu
++++ GMXBIN=/data/mace-arc/gmx/install-xpu/bin
++++ GMXLDLIB=/data/mace-arc/gmx/install-xpu/lib
++++ GMXMAN=/data/mace-arc/gmx/install-xpu/share/man
++++ GMXDATA=/data/mace-arc/gmx/install-xpu/share/gromacs
++++ GMXTOOLCHAINDIR=/data/mace-arc/gmx/install-xpu/share/cmake
++++ GROMACS_DIR=/data/mace-arc/gmx/install-xpu
+++++ replace_in_path /opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib /data/mace-arc/gmx/install-xpu/lib ''
+++++ local tmppath oldpath to_remove to_add old_shell_opts
+++++ oldpath=/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
+++++ to_add=/data/mace-arc/gmx/install-xpu/lib
+++++ to_remove=
+++++ test -z /opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
+++++ test /opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib = :
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib
+++++ old_shell_opts=hxB
+++++ set -o noglob
+++++ set -- /opt/intel/oneapi/tcm/1.5/lib /opt/intel/oneapi/umf/1.1/lib /opt/intel/oneapi/tcm/1.5/env/../lib /opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8 /opt/intel/oneapi/mkl/2026.1/lib /opt/intel/oneapi/debugger/2026.1/opt/debugger/lib /opt/intel/oneapi/compiler/2026.1/opt/compiler/lib /opt/intel/oneapi/compiler/2026.1/lib
+++++ test -n hxB
+++++ set +o noglob
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/tcm/1.5/lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/umf/1.1/lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/tcm/1.5/env/../lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8 '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/mkl/2026.1/lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/debugger/2026.1/opt/debugger/lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/compiler/2026.1/opt/compiler/lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/compiler/2026.1/lib '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
+++++ echo /data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
++++ LD_LIBRARY_PATH=/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
+++++ replace_in_path /opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig /data/mace-arc/gmx/install-xpu/lib/pkgconfig /pkgconfig
+++++ local tmppath oldpath to_remove to_add old_shell_opts
+++++ oldpath=/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig
+++++ to_add=/data/mace-arc/gmx/install-xpu/lib/pkgconfig
+++++ to_remove=/pkgconfig
+++++ test -z /opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig
+++++ test /opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig = :
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib/pkgconfig
+++++ old_shell_opts=hxB
+++++ set -o noglob
+++++ set -- /opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig /opt/intel/oneapi/mkl/2026.1/lib/pkgconfig /opt/intel/oneapi/dpl/2022.13/lib/pkgconfig /opt/intel/oneapi/compiler/2026.1/lib/pkgconfig
+++++ test -n hxB
+++++ set +o noglob
+++++ for i in "$@"
+++++ test '(' -z /pkgconfig ')' -o '(' /opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig '!=' /pkgconfig ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib/pkgconfig:/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig
+++++ for i in "$@"
+++++ test '(' -z /pkgconfig ')' -o '(' /opt/intel/oneapi/mkl/2026.1/lib/pkgconfig '!=' /pkgconfig ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib/pkgconfig:/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig
+++++ for i in "$@"
+++++ test '(' -z /pkgconfig ')' -o '(' /opt/intel/oneapi/dpl/2022.13/lib/pkgconfig '!=' /pkgconfig ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib/pkgconfig:/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig
+++++ for i in "$@"
+++++ test '(' -z /pkgconfig ')' -o '(' /opt/intel/oneapi/compiler/2026.1/lib/pkgconfig '!=' /pkgconfig ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/lib/pkgconfig:/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig
+++++ echo /data/mace-arc/gmx/install-xpu/lib/pkgconfig:/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig
++++ PKG_CONFIG_PATH=/data/mace-arc/gmx/install-xpu/lib/pkgconfig:/opt/intel/oneapi/tbb/2023.1/env/../lib/pkgconfig:/opt/intel/oneapi/mkl/2026.1/lib/pkgconfig:/opt/intel/oneapi/dpl/2022.13/lib/pkgconfig:/opt/intel/oneapi/compiler/2026.1/lib/pkgconfig
+++++ replace_in_path /opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /data/mace-arc/gmx/install-xpu/bin ''
+++++ local tmppath oldpath to_remove to_add old_shell_opts
+++++ oldpath=/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++++ to_add=/data/mace-arc/gmx/install-xpu/bin
+++++ to_remove=
+++++ test -z /opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++++ test /opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin = :
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin
+++++ old_shell_opts=hxB
+++++ set -o noglob
+++++ set -- /opt/intel/oneapi/mkl/2026.1/bin /opt/intel/oneapi/dev-utilities/2026.0/bin /opt/intel/oneapi/debugger/2026.1/opt/debugger/bin /opt/intel/oneapi/compiler/2026.1/bin /usr/local/sbin /usr/local/bin /usr/sbin /usr/bin /sbin /bin
+++++ test -n hxB
+++++ set +o noglob
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/mkl/2026.1/bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/dev-utilities/2026.0/bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/debugger/2026.1/opt/debugger/bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/compiler/2026.1/bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /usr/local/sbin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /usr/local/bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /usr/sbin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /usr/bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /sbin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /bin '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++++ echo /data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/data/mace-arc/gmx/install-xpu/bin:/opt/intel/oneapi/mkl/2026.1/bin:/opt/intel/oneapi/dev-utilities/2026.0/bin:/opt/intel/oneapi/debugger/2026.1/opt/debugger/bin:/opt/intel/oneapi/compiler/2026.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ test -z /opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man:
+++++ replace_in_path /opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man: /data/mace-arc/gmx/install-xpu/share/man ''
+++++ local tmppath oldpath to_remove to_add old_shell_opts
+++++ oldpath=/opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man:
+++++ to_add=/data/mace-arc/gmx/install-xpu/share/man
+++++ to_remove=
+++++ test -z /opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man:
+++++ test /opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man: = :
+++++ tmppath=/data/mace-arc/gmx/install-xpu/share/man
+++++ old_shell_opts=hxB
+++++ set -o noglob
+++++ set -- /opt/intel/oneapi/debugger/2026.1/share/man /opt/intel/oneapi/compiler/2026.1/share/man ''
+++++ test -n hxB
+++++ set +o noglob
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/debugger/2026.1/share/man '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/share/man:/opt/intel/oneapi/debugger/2026.1/share/man
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' /opt/intel/oneapi/compiler/2026.1/share/man '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/share/man:/opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man
+++++ for i in "$@"
+++++ test '(' -z '' ')' -o '(' '' '!=' '' ')'
+++++ tmppath=/data/mace-arc/gmx/install-xpu/share/man:/opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man:
+++++ echo /data/mace-arc/gmx/install-xpu/share/man:/opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man:
++++ MANPATH=/data/mace-arc/gmx/install-xpu/share/man:/opt/intel/oneapi/debugger/2026.1/share/man:/opt/intel/oneapi/compiler/2026.1/share/man:
++++ export GMXBIN GMXLDLIB GMXMAN GMXDATA LD_LIBRARY_PATH PATH MANPATH
++++ export PKG_CONFIG_PATH GROMACS_DIR
++++ IFS=$' \t\n'
++++ unset old_IFS
++++ test -n set
++++ shopt -s extglob
++++ '[' -f /data/mace-arc/gmx/install-xpu/bin/gmx-completion.bash ']'
++++ source /data/mace-arc/gmx/install-xpu/bin/gmx-completion.bash
++++ for cfile in $GMXBIN/gmx-completion-*.bash
++++ source /data/mace-arc/gmx/install-xpu/bin/gmx-completion-gmx.bash
+++++ complete -o nospace -F _gmx_compl gmx
+++ return
++ export LD_LIBRARY_PATH=/work/venv/lib/python3.12/site-packages/torch/lib:/work/venv/lib:/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
++ LD_LIBRARY_PATH=/work/venv/lib/python3.12/site-packages/torch/lib:/work/venv/lib:/data/mace-arc/gmx/install-xpu/lib:/opt/intel/oneapi/tcm/1.5/lib:/opt/intel/oneapi/umf/1.1/lib:/opt/intel/oneapi/tcm/1.5/env/../lib:/opt/intel/oneapi/tbb/2023.1/env/../lib/intel64/gcc4.8:/opt/intel/oneapi/mkl/2026.1/lib:/opt/intel/oneapi/debugger/2026.1/opt/debugger/lib:/opt/intel/oneapi/compiler/2026.1/opt/compiler/lib:/opt/intel/oneapi/compiler/2026.1/lib
++ export ONEAPI_DEVICE_SELECTOR=level_zero:gpu GMX_NN_DEVICE=gpu
++ ONEAPI_DEVICE_SELECTOR=level_zero:gpu
++ GMX_NN_DEVICE=gpu
++ rm -rf /data/mace-arc/gmx/case-si512-b70
++ cp -r /data/mace-arc/gmx/case-si512 /data/mace-arc/gmx/case-si512-b70
++ bash /work/scripts/gmx/run_case.sh /data/mace-arc/gmx/case-si512-b70 -ntomp 16
+                 (ns/day)    (hour/ns)    (ms/step)  (Matom*steps/s) 
+Performance:        2.930        8.191       29.488            0.017 
+Energy                      Average   Err.Est.       RMSD  Tot-Drift
+-------------------------------------------------------------------------------
+CASE-DONE
++ /work/venv/bin/python /work/scripts/gmx/compare_gmx.py /data/mace-arc/gmx/case-si512-b70
+/data/mace-arc/gmx/case-si512-b70: GROMACS vs ASE | E -263603.625 vs -263603.581 kJ/mol (dE -0.044 kJ/mol = -0.46 meV total, -0.0009 meV/atom) | force RMS diff 6.733e-03 kJ/mol/nm (rel 1.19e-05) max 2.686e-02 | F_rms 566.97
+B70-CHAIN-DONE
++ echo B70-CHAIN-DONE

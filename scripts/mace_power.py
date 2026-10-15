@@ -1,7 +1,8 @@
 # Energy per force call: sample the GPU power sensor while hammering the model.
 #   python mace_power.py --device cuda --tag a5000 --n 4 --seconds 60
-# NVIDIA: nvidia-smi power.draw (board power). Intel xe: hwmon energy1_input (uJ) if present,
-# else power1_input (uW). Reports J per force call and idle baseline.
+# NVIDIA: nvidia-smi power.draw (board power), sampled at 5 Hz. Intel xe: the hwmon exposes cumulative
+# energy counters (energy*_input, uJ; the "card" label is the board), not instantaneous power, so the
+# mean power is dE/dt over each window. Reports J per force call and the idle baseline.
 import argparse, glob, os, subprocess, threading, time
 import numpy as np, torch
 from ase.build import bulk
@@ -19,27 +20,42 @@ def xe_hwmon():
         if name == "xe": return h
     return None
 
-def read_power_w():
-    if a.device.startswith("cuda"):
-        out = subprocess.check_output(["nvidia-smi", "--query-gpu=power.draw", "--format=csv,noheader,nounits"]).decode()
-        return float(out.strip().splitlines()[0])
+def xe_energy_file():
     h = xe_hwmon()
     if h is None: raise SystemExit("no xe hwmon (B70 lane needs the 6.18 kernel)")
-    for f in ("power1_input", "power1_max"):
-        pth = os.path.join(h, f)
-        if os.path.exists(pth): return int(open(pth).read()) / 1e6
-    raise SystemExit("xe hwmon has no power1_input")
+    cands = sorted(glob.glob(os.path.join(h, "energy*_input")))
+    if not cands: raise SystemExit("xe hwmon has no energy*_input")
+    for c in cands:                       # prefer the board-level counter
+        lab = c.replace("_input", "_label")
+        if os.path.exists(lab) and "card" in open(lab).read().lower(): return c
+    return cands[0]
+
+def read_power_w():
+    out = subprocess.check_output(["nvidia-smi", "--query-gpu=power.draw", "--format=csv,noheader,nounits"]).decode()
+    return float(out.strip().splitlines[0]) if False else float(out.strip().splitlines()[0])
 
 class Sampler(threading.Thread):
-    def __init__(s): super().__init__(daemon=True); s.v = []; s.go = True
+    """Mean power over a window: nvidia-smi samples at 5 Hz, or xe energy counter deltas."""
+    def __init__(s):
+        super().__init__(daemon=True); s.v = []; s.go = True
+        s.xe = None if a.device.startswith("cuda") else xe_energy_file()
+        if s.xe: s.e0 = (time.perf_counter(), int(open(s.xe).read()))
     def run(s):
         while s.go:
-            try: s.v.append((time.perf_counter(), read_power_w()))
+            try:
+                if s.xe:
+                    t, e = time.perf_counter(), int(open(s.xe).read())
+                    if t - s.e0[0] > 0.5:
+                        s.v.append((t, (e - s.e0[1]) / 1e6 / (t - s.e0[0]))); s.e0 = (t, e)   # W over the last window
+                else:
+                    s.v.append((time.perf_counter(), read_power_w()))
             except Exception: pass
             time.sleep(0.2)
+    def mean(s): return float(np.mean([w for _, w in s.v])) if s.v else float("nan")
+    def max(s): return float(np.max([w for _, w in s.v])) if s.v else float("nan")
 
-idle = Sampler(); idle.start(); time.sleep(5); idle.go = False
-idle_w = float(np.mean([w for _, w in idle.v])) if idle.v else float("nan")
+idle = Sampler(); idle.start(); time.sleep(5); idle.go = False; idle.join(1)
+idle_w = idle.mean()
 
 atoms = bulk("Si", "diamond", a=5.43, cubic=True).repeat((a.n,) * 3); atoms.rattle(stdev=0.05, seed=7)
 kw = dict(model="small", device=a.device, default_dtype=a.dtype)
@@ -52,9 +68,10 @@ while time.perf_counter() - t0 < a.seconds:
 if a.device.startswith("cuda"): torch.cuda.synchronize()
 if a.device.startswith("xpu"):  torch.xpu.synchronize()
 wall = time.perf_counter() - t0; s.go = False; s.join(1)
-ws = np.array([w for _, w in s.v]); load_w = float(ws.mean())
+load_w = s.mean()
+src = "nvidia-smi power.draw" if a.device.startswith("cuda") else f"xe {os.path.basename(s.xe)} ({open(s.xe.replace('_input','_label')).read().strip() if os.path.exists(s.xe.replace('_input','_label')) else '?'})"
 print(f"{a.tag} Si{len(atoms)} {a.dtype}{' cueq' if a.cueq else ''}: {calls} force calls in {wall:.1f} s = {wall/calls*1e3:.1f} ms/call | "
-      f"GPU power idle {idle_w:.1f} W, under load {load_w:.1f} W (max {ws.max():.1f}) | "
+      f"GPU power [{src}] idle {idle_w:.1f} W, under load {load_w:.1f} W (max window {s.max():.1f}) | "
       f"{load_w*wall/calls:.3f} J/call board, {(load_w-idle_w)*wall/calls:.3f} J/call above idle | "
       f"{calls/wall*86400*1e-6:.3f} ns/day at 1 fs")
 print("POWER-DONE")
