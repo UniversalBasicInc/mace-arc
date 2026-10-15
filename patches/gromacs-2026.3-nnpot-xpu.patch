@@ -1,0 +1,110 @@
+Intel GPU (PyTorch XPU) support for the GROMACS 2026.3 NNPot interface, plus a fix for the
+"pairs-shifts" typo in nnpot.cpp (a model requesting only pair-shifts never got its pair list).
+
+--- a/gromacs-2026.3/src/gromacs/applied_forces/nnpot/torchmodel.cpp
++++ b/gromacs-2026.3/src/gromacs/applied_forces/nnpot/torchmodel.cpp
+@@ -41,6 +41,8 @@
+ 
+ #include "torchmodel.h"
+ 
++#include <torch/xpu.h>
++
+ #include <dlfcn.h>
+ 
+ #include <iostream>
+@@ -130,11 +132,39 @@
+         GMX_THROW(InternalError("Could not get active device: hipGetDevice failed."));
+     }
+     return { "hip", activeDevice };
++#elif GMX_SYCL_DPCPP
++    // Intel GPUs: libtorch's XPU backend (PyTorch >= 2.5). mdrun's SYCL device and torch's XPU
++    // enumeration are both in Level Zero order; with one GPU per rank this is device 0.
++    if (torch::xpu::is_available())
++    {
++        return { "xpu", 0 };
++    }
++    return { "cpu", std::nullopt };
+ #else
+     return { "cpu", std::nullopt };
+ #endif
+ }
+ 
++//! \brief \internal torch device type for the string returned by getMdrunActiveDevice()
++static torch::DeviceType torchDeviceTypeFor(const std::string& type)
++{
++    if (type == "xpu")
++    {
++        return torch::kXPU;
++    }
++    return torch::kCUDA; // libtorch addresses ROCm/HIP devices as kCUDA
++}
++
++//! \brief \internal whether libtorch can see a GPU of the given type
++static bool torchGpuAvailable(const std::string& type)
++{
++    if (type == "xpu")
++    {
++        return torch::xpu::is_available();
++    }
++    return torch::cuda::is_available();
++}
++
+ /*! \brief Determine which device to use depending on GMX_NN_DEVICE environment variable
+  *
+  * Should be "gpu" or "cpu". "cuda" option is deprecated. Defaults to GPU if no environment variable is set.
+@@ -160,7 +190,7 @@
+         const std::string devLC = toLowerCase(env);
+         if (devLC == "gpu" || devLC == "cuda")
+         {
+-            if (!torch::cuda::is_available())
++            if (!torchGpuAvailable(torchDeviceType))
+             {
+                 GMX_THROW(InternalError(formatString(
+                         "GMX_NN_DEVICE was set to '%s', but no matching device is available.", env)));
+@@ -169,7 +199,7 @@
+                     activeDevice.has_value(),
+                     "Active device couldn't be determined. Ensure that Libtorch and GROMACS "
+                     "are compiled with matching GPU support.");
+-            device = torch::Device(torch::kCUDA, activeDevice.value());
++            device = torch::Device(torchDeviceTypeFor(torchDeviceType), activeDevice.value());
+         }
+         else if (devLC != "cpu")
+         {
+@@ -183,7 +213,7 @@
+     }
+     else // not set: automatically determine device
+     {
+-        if (torch::cuda::is_available() && activeDevice.has_value())
++        if (torchGpuAvailable(torchDeviceType) && activeDevice.has_value())
+         {
+             GMX_LOG(logger.info)
+                     .asParagraph()
+@@ -191,7 +221,7 @@
+                             "GMX_NN_DEVICE environment variable not found."
+                             " Using "
+                             + toUpperCase(torchDeviceType) + " device.");
+-            device = torch::Device(torch::kCUDA, activeDevice.value());
++            device = torch::Device(torchDeviceTypeFor(torchDeviceType), activeDevice.value());
+         }
+         else
+         {
+--- a/gromacs-2026.3/src/gromacs/applied_forces/nnpot/nnpot.cpp
++++ b/gromacs-2026.3/src/gromacs/applied_forces/nnpot/nnpot.cpp
+@@ -177,7 +177,7 @@
+ 
+         // set pairlist range
+         if (nnpotOptions_.parameters().modelNeedsInput("atom-pairs")
+-            || nnpotOptions_.parameters().modelNeedsInput("pairs-shifts"))
++            || nnpotOptions_.parameters().modelNeedsInput("pair-shifts"))
+         {
+             const auto setPlainPairlistRangeFunction = [this](PlainPairlistRanges* plainPairlistRanges)
+             { plainPairlistRanges->addRange(nnpotOptions_.parameters().pairCutoff_); };
+@@ -207,7 +207,7 @@
+ 
+         // subscribe to pairlist construction notification
+         if (nnpotOptions_.parameters().modelNeedsInput("atom-pairs")
+-            || nnpotOptions_.parameters().modelNeedsInput("pairs-shifts"))
++            || nnpotOptions_.parameters().modelNeedsInput("pair-shifts"))
+         {
+             const auto notifyPairlistFunction = [this](const MDModulesPairlistConstructedSignal& signal)
+             { nnpotForceProvider_->setPairlist(signal); };

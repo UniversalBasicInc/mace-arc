@@ -1,0 +1,156 @@
+downloading uv 0.12.23 x86_64-unknown-linux-gnu
+installing to /work/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+Downloading cpython-3.12.15-linux-x86_64-gnu (download) (32.7MiB)
+ Downloaded cpython-3.12.15-linux-x86_64-gnu (download)
+Using CPython 3.12.15
+Creating virtual environment at: venv
+Activate with: source venv/bin/activate
+Using Python 3.12.15 environment at: venv
+Resolved 34 packages in 833ms
+Downloading setuptools (1.2MiB)
+Downloading torch (820.6MiB)
+Downloading triton-xpu (521.9MiB)
+Downloading sympy (6.0MiB)
+Downloading intel-pti (1.3MiB)
+Downloading intel-cmplr-lib-ur (30.1MiB)
+Downloading intel-openmp (50.1MiB)
+Downloading onemkl-sycl-lapack (8.0MiB)
+Downloading networkx (2.0MiB)
+Downloading onemkl-sycl-dft (6.4MiB)
+Downloading oneccl (80.7MiB)
+Downloading intel-cmplr-lib-rt (38.3MiB)
+Downloading onemkl-sycl-blas (19.7MiB)
+Downloading onemkl-sycl-rng (22.5MiB)
+Downloading intel-opencl-rt (194.9MiB)
+Downloading impi-rt (122.8MiB)
+Downloading mkl (213.7MiB)
+Downloading oneccl-devel (27.7MiB)
+Downloading intel-sycl-rt (127.9MiB)
+Downloading onemkl-sycl-sparse (20.6MiB)
+Downloading tcmlib (2.7MiB)
+Downloading tbb (6.5MiB)
+ Downloaded setuptools
+ Downloaded intel-pti
+ Downloaded networkx
+ Downloaded tcmlib
+ Downloaded sympy
+ Downloaded onemkl-sycl-dft
+ Downloaded tbb
+ Downloaded onemkl-sycl-lapack
+ Downloaded onemkl-sycl-blas
+ Downloaded onemkl-sycl-sparse
+ Downloaded onemkl-sycl-rng
+ Downloaded oneccl-devel
+ Downloaded intel-cmplr-lib-ur
+ Downloaded intel-cmplr-lib-rt
+ Downloaded intel-openmp
+ Downloaded oneccl
+ Downloaded impi-rt
+ Downloaded intel-sycl-rt
+ Downloaded intel-opencl-rt
+ Downloaded mkl
+ Downloaded triton-xpu
+ Downloaded torch
+Prepared 34 packages in 26.10s
+Installed 34 packages in 348ms
+ + dpcpp-cpp-rt==2026.1.0
+ + filelock==3.32.3
+ + fsspec==2026.7.0
+ + impi-rt==2021.18.1
+ + intel-cmplr-lib-rt==2026.1.0
+ + intel-cmplr-lib-ur==2026.1.0
+ + intel-cmplr-lic-rt==2026.1.0
+ + intel-opencl-rt==2026.1.0
+ + intel-openmp==2026.1.0
+ + intel-pti==1.0.1
+ + intel-sycl-rt==2026.1.0
+ + jinja2==3.1.6
+ + markupsafe==3.0.3
+ + mkl==2026.1.0
+ + mpmath==1.3.0
+ + networkx==3.6.1
+ + oneccl==2022.1.1
+ + oneccl-devel==2022.1.1
+ + onemkl-license==2026.1.0
+ + onemkl-sycl-blas==2026.1.0
+ + onemkl-sycl-dft==2026.1.0
+ + onemkl-sycl-lapack==2026.1.0
+ + onemkl-sycl-rng==2026.1.0
+ + onemkl-sycl-sparse==2026.1.0
+ + pyelftools==0.32
+ + pyzes==0.1.2
+ + setuptools==78.1.0
+ + sympy==1.14.0
+ + tbb==2023.1.0
+ + tcmlib==1.5.0
+ + torch==2.14.1+xpu
+ + triton-xpu==3.8.0
+ + typing-extensions==4.16.0
+ + umf==1.1.0
+Using Python 3.12.15 environment at: venv
+Resolved 68 packages in 1.55s
+   Building python-hostlist==2.3.0
+Downloading kiwisolver (1.4MiB)
+Downloading matplotlib (9.4MiB)
+Downloading pandas (10.3MiB)
+Downloading numpy (15.9MiB)
+Downloading scipy (33.7MiB)
+Downloading h5py (5.2MiB)
+Downloading fonttools (5.1MiB)
+Downloading ase (2.9MiB)
+Downloading pillow (6.6MiB)
+      Built python-hostlist==2.3.0
+ Downloaded kiwisolver
+ Downloaded ase
+ Downloaded fonttools
+ Downloaded h5py
+ Downloaded pillow
+ Downloaded matplotlib
+ Downloaded pandas
+ Downloaded numpy
+ Downloaded scipy
+Prepared 34 packages in 1.40s
+Installed 34 packages in 103ms
+ + ase==3.29.0
+ + configargparse==1.8.0
+ + contourpy==1.4.0
+ + cycler==0.12.1
+ + e3nn==0.4.4
+ + fonttools==4.66.1
+ + gitdb==4.0.12
+ + gitpython==3.2.0
+ + h5py==3.16.0
+ + kiwisolver==1.5.1
+ + lightning-utilities==0.15.3
+ + lmdb==3.0.0
+ + mace-torch==0.3.16
+ + matplotlib==3.11.2
+ + matscipy==1.3.0
+ + numpy==2.5.3
+ + opt-einsum==3.4.0
+ + opt-einsum-fx==0.1.4
+ + orjson==3.12.0
+ + packaging==26.3
+ + pandas==3.0.6
+ + pillow==12.3.0
+ + prettytable==3.18.0
+ + pyparsing==3.3.3
+ + python-dateutil==2.9.0.post0
+ + python-hostlist==2.3.0
+ + pyyaml==6.0.3
+ + scipy==1.18.1
+ + six==1.17.0
+ + smmap==5.0.3
+ + torch-ema==0.3
+ + torchmetrics==1.9.0
+ + tqdm==4.70.1
+ + wcwidth==0.9.2
+SETUP-DONE
