@@ -1,0 +1,16 @@
+; Pure-NNP topology: one Si atom type with no classical interactions; MACE supplies everything.
+[ defaults ]
+; nbfunc comb-rule gen-pairs fudgeLJ fudgeQQ
+1 2 no 1.0 1.0
+[ atomtypes ]
+; name at.num mass charge ptype sigma epsilon
+Si 14 28.0855 0.0 A 0.0 0.0
+[ moleculetype ]
+SI 3
+[ atoms ]
+; nr type resnr residue atom cgnr charge mass
+1 Si 1 SI Si 1 0.0 28.0855
+[ system ]
+Si512 rattled diamond, MACE-MP-0 small via NNPot
+[ molecules ]
+SI 512

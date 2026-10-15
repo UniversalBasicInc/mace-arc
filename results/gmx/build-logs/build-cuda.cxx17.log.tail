@@ -1,0 +1,60 @@
+config.status: creating rdft/simd/sse2/Makefile
+config.status: creating rdft/simd/avx/Makefile
+config.status: creating rdft/simd/avx-128-fma/Makefile
+config.status: creating rdft/simd/avx2/Makefile
+config.status: creating rdft/simd/avx2-128/Makefile
+config.status: creating rdft/simd/avx512/Makefile
+config.status: creating rdft/simd/kcvi/Makefile
+config.status: creating rdft/simd/altivec/Makefile
+config.status: creating rdft/simd/vsx/Makefile
+config.status: creating rdft/simd/neon/Makefile
+config.status: creating rdft/simd/generic-simd128/Makefile
+config.status: creating rdft/simd/generic-simd256/Makefile
+config.status: creating reodft/Makefile
+config.status: creating threads/Makefile
+config.status: creating api/Makefile
+config.status: creating mpi/Makefile
+config.status: creating libbench2/Makefile
+config.status: creating tests/Makefile
+config.status: creating doc/Makefile
+config.status: creating doc/FAQ/Makefile
+config.status: creating tools/Makefile
+config.status: creating tools/fftw_wisdom.1
+config.status: creating tools/fftw-wisdom-to-conf
+config.status: creating m4/Makefile
+config.status: creating fftw.pc
+config.status: creating config.h
+config.status: executing depfiles commands
+[ 34%] Built target taskassignment
+[ 34%] Linking CXX shared library ../../../../lib/libgtest.so
+[ 34%] Built target gtest
+[ 34%] Building CXX object src/external/googletest/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[ 34%] Linking CXX shared library ../../../../lib/libgmock.so
+[ 34%] Built target gmock
+[ 34%] Built target modularsimulator
+gmake[2]: *** [src/gromacs/CMakeFiles/colvars_objlib.dir/build.make:401: src/gromacs/CMakeFiles/colvars_objlib.dir/__/external/colvars/colvarcomp_torchann.cpp.o] Error 1
+gmake[2]: *** Waiting for unfinished jobs....
+gmake[2]: *** [src/gromacs/CMakeFiles/colvars_objlib.dir/build.make:79: src/gromacs/CMakeFiles/colvars_objlib.dir/__/external/colvars/colvar.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:5842: src/gromacs/CMakeFiles/colvars_objlib.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+sed: can't read mpi/Makefile: No such file or directory
+sed: can't read tests/Makefile: No such file or directory
+sed: can't read doc/Makefile: No such file or directory
+sed: can't read doc/FAQ/Makefile: No such file or directory
+sed: can't read tools/Makefile: No such file or directory
+sed: can't read tools/fftw_wisdom.1: No such file or directory
+sed: can't read tools/fftw-wisdom-to-conf: No such file or directory
+sed: can't read m4/Makefile: No such file or directory
+sed: can't read fftw.pc: No such file or directory
+config.status: error: in `/data/mace-arc/gmx/build-cuda/src/external/build-fftw/fftwBuild-prefix/src/fftwBuild-build':
+config.status: error: Something went wrong bootstrapping makefile fragments
+    for automatic dependency tracking.  If GNU make was not used, consider
+    re-running the configure script with MAKE="gmake" (or whatever is
+    necessary).  You can also try re-running configure with the
+    '--disable-dependency-tracking' option to at least be able to build
+    the package (albeit without support for automatic dependency tracking).
+See `config.log' for more details
+/data/mace-arc/gmx/build-cuda/src/external/build-fftw/fftwBuild-prefix/src/fftwBuild/configure: line 24633: config.log: No such file or directory
+gmake[2]: *** [src/external/build-fftw/CMakeFiles/fftwBuild.dir/build.make:92: src/external/build-fftw/fftwBuild-prefix/src/fftwBuild-stamp/fftwBuild-configure] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:4675: src/external/build-fftw/CMakeFiles/fftwBuild.dir/all] Error 2
+gmake: *** [Makefile:166: all] Error 2

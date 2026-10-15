@@ -34,7 +34,19 @@ Same-dtype device delta read against the fp32 dtype floor, Babel-style:
 The device contributes three orders of magnitude less than the precision choice. In fp64 the B70
 matches the CPU at machine epsilon: the device is not in the answer. (B70 lane 2026-10-05, `results/b70-20261005/`.)
 
-A5000 vs B70 on the same geometries: PENDING-A5000-COMPARE
+A5000 lane (2026-10-15, quiet host), same geometries, `results/ab/`:
+
+| System | cuda32 vs cpu32 (rel RMS) | cuda32 e3nn vs cuda32 cuEquivariance | cuda64 vs cpu64 (rel RMS) |
+|---|---|---|---|
+| Si64 | 1.6e-06 | 5.2e-07 | 3.4e-15 |
+| Si512 | 1.6e-06 | 6.2e-07 | 3.0e-15 |
+| Si1728 | 1.6e-06 | 6.5e-07 | — |
+
+The A5000 and the B70 sit at the same place: ~2e-06 relative to the CPU in fp32 (the dtype floor is
+3e-03 to 7e-06 depending on the system), machine epsilon in fp64. cuEquivariance's kernels change
+the forces by 6e-07 relative, i.e. a reordering of fp32 sums, not a numerical difference. Direct
+B70-vs-A5000 `.npz` comparison on this harness is pending the next B70 boot (the 2026-10-05 B70 run
+predates `mace_ab.py`).
 
 ## Finding 3 — the B70 does real FP64, and it is cheap here
 
@@ -51,21 +63,39 @@ Median force call, Si512 / Si1728, fp32:
 |---|---|---|---|---|
 | EPYC 7742, 128 thr, cpu32 | 83 ms | 435 ms | 1206 ms | quiet host, 2026-10-05 |
 | Arc Pro B70, xpu32 | 30 ms | 44 ms | 128 ms | quiet host, 2026-10-05 |
-| RTX A5000, cuda32 (e3nn) | PENDING | PENDING | PENDING | 2026-10-15, **RandomX miner resident, see caveat** |
-| RTX A5000, cuda32 + cuEquivariance | PENDING | PENDING | PENDING | same |
+| EPYC 7742, 128 thr, cpu32 | 148 ms | 454 ms | 1184 ms | quiet host, 2026-10-15 (repeat) |
+| RTX A5000, cuda32 (e3nn) | 39 ms | 43 ms | 128 ms | quiet host, 2026-10-15 |
+| RTX A5000, cuda32 + cuEquivariance | 42 ms | 43 ms | 71 ms | quiet host, 2026-10-15 |
 
-B70 vs EPYC: 9.8× (Si512), 9.4× (Si1728).
+fp64, Si512: **B70 110 ms, A5000 230 ms, EPYC 644–671 ms.**
 
-**Caveat on the A5000 numbers.** On 2026-10-15 the host was running a 128-thread RandomX miner at
-`SCHED_IDLE`. Our process pre-empts it for CPU time, but RandomX saturates L3 and memory bandwidth,
-and the e3nn path is launch-bound (hundreds of small kernels per call, Python-driven). The CPU lane
-measured 5× slower than on the quiet host two weeks earlier (Si512 cpu32: 2219 ms vs 435 ms), which
-calibrates the contamination. The A5000 lane needs a quiet re-run before any cross-vendor speed claim;
-forces are unaffected and the correctness comparison stands. `scripts/run_cuda_chain.sh` reruns it.
+Read: on the plain e3nn path **the Arc Pro B70 and the RTX A5000 are the same speed** (Si512 44 vs 43 ms,
+Si1728 128 vs 128 ms), both ~10× the 128-thread EPYC. That path is launch-bound (Python-driven, hundreds
+of small kernels per call), so neither card is near its compute roof; it is the path Intel users get
+today. cuEquivariance, which exists for NVIDIA only, buys the A5000 1.8× at Si1728 and nothing at Si512.
+In fp64 the B70 is **2.1× faster than the A5000**: Xe2 has fp64 at 1/14 rate, GA102 at 1/32.
+
+**Measurement note.** A first A5000 pass on 2026-10-15 ran with a 128-thread RandomX miner resident at
+`SCHED_IDLE`; the CPU lane came out 5× slower than on the quiet host (Si512 cpu32 2219 ms vs 435 ms) and the
+A5000 e3nn lane 1.7–3.3× slower (it is launch-bound, and RandomX saturates L3/memory bandwidth even when
+it yields the cores). Those numbers are kept in `results/miner-on/` as a calibration of how much a busy host
+distorts a launch-bound benchmark; the table above is the quiet re-run (two reniced GROMACS builds were
+running, and the CPU lane reproduced the 2026-10-05 numbers within 5 %).
 
 ## Finding 5 — energy per force call (board power)
 
-PENDING-POWER
+GPU board power sampled at 5 Hz while hammering the force call for 60 s (`mace_power.py`), Si512 fp32:
+
+| Device | ms/call | idle W | load W | J/call (board) | J/call above idle | ns/day at 1 fs |
+|---|---|---|---|---|---|---|
+| RTX A5000, e3nn | 54 | 18 | 168 | 9.1 | 8.1 | 1.60 |
+| RTX A5000, cuEquivariance | 57 | 20 | 84 | 4.8 | 3.7 | 1.52 |
+| Arc Pro B70, e3nn | pending the next 6.18 boot (`xe` hwmon, `run_b70_chain.sh`) | | | | | |
+
+Si1728 fp32 on the A5000 e3nn path: 129 ms/call, 179 W under load, 23.2 J/call board (0.67 ns/day).
+
+cuEquivariance halves the energy per step at equal speed: the fused kernels leave the GPU half-idle
+rather than busy with launch overhead. The B70 row is the number the solar pitch wants.
 
 ## Finding 6 — MD stability: NVE drift and thermostatted NVT
 
@@ -82,7 +112,17 @@ No NaNs, no drift, lanes statistically identical. xpu64 == xpu32 speed at Si64: 
 (The ns/day column is recomputed; the script version that produced `nve.log` had a stray 1e-3 in
 the formula, so the log's "0.002 ns/day" is wrong by 1000×.)
 
-Langevin NVT, 300 K, 1 fs, 10 ps: PENDING-NVT
+Langevin NVT (ASE, friction 0.01/fs, 300 K, 1 fs, 10 000 steps = 10 ps, Si512 fp32), second half of the run:
+
+| Lane | T (K) | E_pot/atom (eV) | spikes | steps/s | ns/day |
+|---|---|---|---|---|---|
+| A5000 e3nn | 299.7 ± 12.4 | −5.3305 ± 0.0016 | 0 after equilibration | 18.0 | 1.55 |
+| A5000 cuEquivariance | 299.7 ± 12.4 | −5.3305 ± 0.0016 | 0 after equilibration | 19.5 | 1.69 |
+| B70 e3nn | pending the next 6.18 boot (`run_b70_chain.sh`) | | | | |
+
+Same seeds, same thermostat: the two A5000 lanes produce statistically identical trajectories (the one
+"spike" is the first 100-step window, the 16.6 eV equilibration from the cold lattice). Production-style
+MD on Si512 with a foundation potential sits at 1.5–1.7 ns/day on one card.
 
 ## Finding 7 — GROMACS 2026 NNPot coupling
 
@@ -105,7 +145,37 @@ interface knows CUDA and HIP devices only (`torchmodel.cpp: getMdrunActiveDevice
 - Si512 pure-NNP test case (`make_si_system.py`): a Si atom type with zero LJ/charge, `nnpot-input-group = System`,
   `pair-cutoff = 0.6` (= r_max). Force check at step 0 against the ASE calculator on the identical `.gro` coordinates.
 
-**Results.** PENDING-GMX
+**Results (A5000 tier, GROMACS 2026.3 + libtorch 2.14.1+cu126, patched).** Step-0 forces on the identical
+`.gro` coordinates, Si512, `nnpot-input-group = System`, `nnpot-pair-cutoff = 0.6`:
+
+| NNPot device | ΔE vs ASE/MACE | force RMS diff (rel) | max |
+|---|---|---|---|
+| A5000 (`GMX_NN_DEVICE=gpu`) | +0.05 kJ/mol of −263 604 (+0.001 meV/atom) | 6.7e-03 kJ/mol/nm (1.2e-05) | 2.7e-02 kJ/mol/nm |
+| CPU (`GMX_NN_DEVICE=cpu`) | +0.02 kJ/mol | 6.7e-03 kJ/mol/nm (1.2e-05) | 2.7e-02 kJ/mol/nm |
+
+GROMACS's own pair list + shift vectors, fed through the wrapper, reproduce MACE's ASE neighbour list to
+1e-05 relative — the fp32 floor, same as the pure-Python self-check. The pair list and shift conventions
+of the 2026 interface are therefore confirmed for MACE: half list, `shifts` negated for the mirrored edges.
+
+NVT in GROMACS (v-rescale 300 K, 1 fs, 10 ps, `-nb gpu -ntomp 16`): T = 300.2 ± 10.7 K, **2.84 ns/day, 30.5 ms/step**
+on the A5000 — 1.8× the ASE/Python loop (1.55 ns/day) with the same model on the same GPU, because the
+integrator, pair list and I/O now live in C++ and only the model forward crosses into libtorch.
+
+**Build friction (all logged in `results/gmx/build-logs/`).**
+
+1. **PyTorch 2.14 headers require C++20**; GROMACS 2026.3 defaults to C++17 → `-DCMAKE_CXX_STANDARD=20`
+   (GROMACS honours it). Both the gcc 12 host build and the icpx 2026.1 container build failed identically without it.
+2. **NNPot links libpython** (`find_package(Python REQUIRED COMPONENTS Development)`) → needs headers + `libpython.so`
+   matching the torch wheel's Python; `-DPython_ROOT_DIR` pointed at uv's CPython 3.12 worked in both environments.
+3. The `torch==2.14.1+cu126` wheel's CMake config refuses CUDA < 12.6 even though the driver only needs 12.x
+   (driver 535 / CUDA 12.2 runs the result fine via minor-version compatibility) → CUDA 12.6 toolkit for the build only.
+4. The pair-cutoff mdp key is `nnpot-pair-cutoff` (module-prefixed); the manual's `pair-cutoff` is silently ignored
+   and grompp reports "pair-cutoff is 0.0".
+5. The DPC++ build: oneAPI `setvars.sh` dies under `set -u`; source it first.
+
+**XPU tier.** `install-xpu` (SYCL DPC++ 2026.1, Xe2 cluster flags, oneMKL FFT, libtorch 2.14.1+xpu, this patch) is
+built and installed in the container; the run waits for the host's 6.18 boot (`scripts/run_b70_chain.sh` does the
+whole lane in one command, including this case on the B70).
 
 ## Operational notes
 
@@ -123,7 +193,7 @@ simply absent on XPU.
 
 ## Open
 
-- Quiet-host A5000 re-run (miner paused) for the cross-vendor speed table.
 - B70 re-run of `mace_ab.py`/`mace_power.py`/`mace_nvt.py` with the new harness (`scripts/run_b70_chain.sh`) after the next 6.18 boot.
-- GROMACS XPU lane run on the B70 (build is kernel-independent; the run is not).
+- GROMACS XPU lane run on the B70 (built; the run is not kernel-independent).
+- Propose upstream, when cleared: GROMACS `pair-shifts` typo + XPU device selection; a MACE docs note that `device="xpu"` works.
 - Larger systems / MACE-MP medium; torch.compile on XPU; memory ceiling on the 32 GB B70.

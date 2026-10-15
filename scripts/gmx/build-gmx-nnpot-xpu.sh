@@ -8,12 +8,14 @@ set -euo pipefail
 icpx --version | head -1
 SRC=/data/mace-arc/gmx/gromacs-2026.3; B=/data/mace-arc/gmx/build-xpu; I=/data/mace-arc/gmx/install-xpu
 TORCH=/work/venv/lib/python3.12/site-packages/torch
+# NNPot links libpython (torch extensions); the container has no python3-dev, so point cmake at uv's CPython (headers + libpython)
+PYROOT=/work/.local/share/uv/python/cpython-3.12.15-linux-x86_64-gnu
 export CC=icx CXX=icpx
 cd "$SRC" && patch -p1 -N -r - < /data/mace-arc/patches/gromacs-2026.3-nnpot-xpu.patch || true
-rm -rf "$B"; cmake -S "$SRC" -B "$B" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$I" \
+rm -rf "$B"; cmake -S "$SRC" -B "$B" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$I" -DCMAKE_CXX_STANDARD=20 \
   -DGMX_GPU=SYCL -DGMX_SYCL=DPCPP -DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_X=1 -DGMX_GPU_NB_CLUSTER_SIZE=8 \
   -DGMX_GPU_FFT_LIBRARY=mkl -DGMX_FFT_LIBRARY=mkl -DGMX_BUILD_OWN_FFTW=OFF \
-  -DGMX_NNPOT=TORCH -DTorch_DIR="$TORCH/share/cmake/Torch" -DCMAKE_PREFIX_PATH="$TORCH" \
+  -DGMX_NNPOT=TORCH -DTorch_DIR="$TORCH/share/cmake/Torch" -DCMAKE_PREFIX_PATH="$TORCH" -DPython_ROOT_DIR="$PYROOT" \
   -DGMX_MPI=OFF -DGMX_OPENMP=ON -DGMX_HWLOC=OFF \
   -DREGRESSIONTEST_DOWNLOAD=OFF -DGMXAPI=OFF -DGMX_INSTALL_LEGACY_API=OFF -DGMX_EXTERNAL_BLAS=OFF -DGMX_EXTERNAL_LAPACK=OFF
 grep -iE "torch|nnpot" "$B/CMakeCache.txt" | grep -v "^//" | head -20

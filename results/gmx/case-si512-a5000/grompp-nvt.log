@@ -1,0 +1,41 @@
+                      :-) GROMACS - gmx grompp, 2026.3 (-:
+
+Executable:   /data/mace-arc/gmx/install-cuda/bin/gmx
+Data prefix:  /data/mace-arc/gmx/install-cuda
+Working dir:  /data/mace-arc/gmx/case-si512-a5000
+Command line:
+  gmx grompp -f nvt.mdp -c conf.gro -p topol.top -o nvt.tpr -maxwarn 2
+
+Number of degrees of freedom in T-Coupling group System is 1533.00
+Setting the LD random seed to -1284530209
+
+Generated 1 of the 1 non-bonded parameter combinations
+
+Excluding 3 bonded neighbours molecule type 'SI'
+
+Velocities were taken from a Maxwell distribution at 300 K
+Analysing residue names:
+There are:   512      Other residues
+Analysing residues not classified as Protein/DNA/RNA/Water and splitting into groups...
+
+Neural network potential interface is active, topology was modified!
+Number of embedded NNP atoms: 512
+Number of regular atoms: 0
+Number of exclusions made: 512
+
+Determining Verlet buffer for a tolerance of 0.005 kJ/mol/ps at 300 K
+
+Calculated rlist for 1x1 atom pair-list as 0.700 nm, buffer size 0.000 nm
+
+Set rlist, assuming 4x4 atom pair-list, to 0.700 nm, buffer size 0.000 nm
+
+Note that mdrun will redetermine rlist based on the actual pair-list setup
+
+This run will generate roughly 0 Mb of data
+
+GMX_NN_DEVICE environment variable found. Using device: 'gpu'.
+
+NNP model does not output forces. They will be computed as gradients of the energy w.r.t. the first input tensor (atom positions).
+
+GROMACS reminds you: "Nada e organico, e tudo programado" (Pitty)
+

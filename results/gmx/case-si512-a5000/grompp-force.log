@@ -1,0 +1,46 @@
+                      :-) GROMACS - gmx grompp, 2026.3 (-:
+
+Executable:   /data/mace-arc/gmx/install-cuda/bin/gmx
+Data prefix:  /data/mace-arc/gmx/install-cuda
+Working dir:  /data/mace-arc/gmx/case-si512-a5000
+Command line:
+  gmx grompp -f force.mdp -c conf.gro -p topol.top -o force.tpr -maxwarn 2
+
+
+NOTE 1 [file force.mdp]:
+  For a correct single-point energy evaluation with nsteps = 0, use
+  continuation = yes to avoid constraining the input coordinates.
+
+Number of degrees of freedom in T-Coupling group rest is 1533.00
+The integrator does not provide a ensemble temperature, there is no system ensemble temperature
+
+NOTE 2 [file force.mdp]:
+  NVE simulation with an initial temperature of zero: will use a Verlet
+  buffer of 10%. Check your energy drift!
+
+Setting the LD random seed to -537413125
+
+Generated 1 of the 1 non-bonded parameter combinations
+
+Excluding 3 bonded neighbours molecule type 'SI'
+
+Taking velocities from 'conf.gro', all velocities are zero
+Analysing residue names:
+There are:   512      Other residues
+Analysing residues not classified as Protein/DNA/RNA/Water and splitting into groups...
+
+Neural network potential interface is active, topology was modified!
+Number of embedded NNP atoms: 512
+Number of regular atoms: 0
+Number of exclusions made: 512
+
+This run will generate roughly 0 Mb of data
+
+GMX_NN_DEVICE environment variable found. Using device: 'gpu'.
+
+NNP model does not output forces. They will be computed as gradients of the energy w.r.t. the first input tensor (atom positions).
+
+There were 2 NOTEs
+
+GROMACS reminds you: "What They Need's a Damn Good Whacking" (The Beatles)
+

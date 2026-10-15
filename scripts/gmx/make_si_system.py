@@ -47,7 +47,7 @@ nnpot-model-input3 = atom-pairs
 nnpot-model-input4 = pair-shifts
 nnpot-model-input5 = box
 nnpot-model-input6 = pbc
-pair-cutoff = {a.cutoff}
+nnpot-pair-cutoff = {a.cutoff}
 """
 open(os.path.join(a.dir, "force.mdp"), "w").write("integrator = md\nnsteps = 0\ndt = 0.001\nnstfout = 1\nnstenergy = 1\nnstcalcenergy = 1\nnstxout = 1\n" + common)
 open(os.path.join(a.dir, "nvt.mdp"), "w").write(f"integrator = md\nnsteps = {a.nsteps}\ndt = 0.001\nnstenergy = 100\nnstcalcenergy = 100\nnstlog = 1000\nnstxout-compressed = 1000\n"

@@ -7,6 +7,12 @@ about Intel GPUs).
 
 **Status: private working repository.** Nothing here has been proposed upstream yet.
 
+Headline (details and caveats in the findings): on the plain e3nn path the **Arc Pro B70 matches the RTX A5000**
+(Si512 forces 44 vs 43 ms, Si1728 128 vs 128 ms, both ~10× a 128-thread EPYC), forces agree with the CPU to the
+fp32 floor on both, **fp64 on the B70 is 2.1× faster than on the A5000**, and GROMACS 2026 drives MACE through
+NNPot on the A5000 at 2.8 ns/day (Si512) with forces matching ASE to 1e-05 — the Intel-GPU GROMACS build is
+ready and waits for the B70 boot.
+
 | Lane | What runs | Where |
 |---|---|---|
 | `scripts/mace_ab.py` | force A/B: same geometries, any device, forces saved as `.npz` | B70 (`xpu`), A5000 (`cuda`), EPYC (`cpu`) |

@@ -1,0 +1,9 @@
+== A5000 (GMX_NN_DEVICE=gpu)
+Traceback (most recent call last):
+  File "/data/mace-arc/scripts/gmx/compare_gmx.py", line 6, in <module>
+    rows = [l.split() for l in open(os.path.join(d, "forces.xvg")) if l and l[0] not in "#@"]
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'case-si512-a5000/forces.xvg'
+grep: case-si512-a5000/force.log: No such file or directory
+== CPU device (GMX_NN_DEVICE=cpu), force check only
+GMX-CUDA-CASE-DONE

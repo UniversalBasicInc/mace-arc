@@ -1,0 +1,28 @@
+{
+ "device": "cuda",
+ "device_name": "NVIDIA RTX A5000",
+ "torch": "2.14.1+cu126",
+ "cueq": true,
+ "host": "JARVIS",
+ "kernel": "6.1.0-49-amd64",
+ "runs": {
+  "Si64_float32": {
+   "N": 64,
+   "median_ms": 42.01605600246694,
+   "min_ms": 28.5181789950002,
+   "energy_eV": -341.58843994140625
+  },
+  "Si512_float32": {
+   "N": 512,
+   "median_ms": 43.411326500063296,
+   "min_ms": 38.037192993215285,
+   "energy_eV": -2731.978515625
+  },
+  "Si1728_float32": {
+   "N": 1728,
+   "median_ms": 71.36741650174372,
+   "min_ms": 64.01101101073436,
+   "energy_eV": -9221.0341796875
+  }
+ }
+}

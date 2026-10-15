@@ -1,0 +1,13 @@
+== A5000 (GMX_NN_DEVICE=gpu)
+                 (ns/day)    (hour/ns)    (ms/step)  (Matom*steps/s) 
+Performance:        2.835        8.465       30.476            0.017 
+Energy                      Average   Err.Est.       RMSD  Tot-Drift
+-------------------------------------------------------------------------------
+CASE-DONE
+case-si512-a5000: GROMACS vs ASE | E -263603.531 vs -263603.581 kJ/mol (dE +0.050 kJ/mol = +0.51 meV total, +0.0010 meV/atom) | force RMS diff 6.708e-03 kJ/mol/nm (rel 1.18e-05) max 2.662e-02 | F_rms 566.97
+Torch support:       enabled (version 2.14.1)
+     nnpot:
+GMX_NN_DEVICE environment variable found. Using device: 'gpu'.
+== CPU device (GMX_NN_DEVICE=cpu), force check only
+case-si512-cpu: GROMACS vs ASE | E -263603.562 vs -263603.581 kJ/mol (dE +0.018 kJ/mol = +0.19 meV total, +0.0004 meV/atom) | force RMS diff 6.659e-03 kJ/mol/nm (rel 1.17e-05) max 2.655e-02 | F_rms 566.97
+GMX-CUDA-CASE-DONE

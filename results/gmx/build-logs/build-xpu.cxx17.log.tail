@@ -1,0 +1,60 @@
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/ssteqr.cpp.o
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/ssterf.cpp.o
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/sstevr.cpp.o
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/ssyevr.cpp.o
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/ssytd2.cpp.o
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/ssytrd.cpp.o
+[ 29%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/strti2.cpp.o
+[ 31%] Building CXX object src/gromacs/linearalgebra/CMakeFiles/linearalgebra.dir/gmx_lapack/strtri.cpp.o
+[ 31%] Built target tng_io_obj
+[ 31%] Built target linearalgebra
+[ 31%] Building CXX object src/gromacs/pulling/CMakeFiles/pulling.dir/pull.cpp.o
+[ 31%] Building CXX object src/gromacs/pulling/CMakeFiles/pulling.dir/transformationcoordinate.cpp.o
+[ 31%] Building CXX object src/gromacs/pulling/CMakeFiles/pulling.dir/pullutil.cpp.o
+[ 31%] Building CXX object src/gromacs/pulling/CMakeFiles/pulling.dir/pull_rotation.cpp.o
+[ 31%] Building CXX object src/gromacs/pulling/CMakeFiles/pulling.dir/output.cpp.o
+[ 32%] Building CXX object src/gromacs/pulling/CMakeFiles/pulling.dir/pullcoordexpressionparser.cpp.o
+39 warnings and 20 errors generated.
+gmake[2]: *** [src/gromacs/CMakeFiles/colvars_objlib.dir/build.make:79: src/gromacs/CMakeFiles/colvars_objlib.dir/__/external/colvars/colvar.cpp.o] Error 1
+gmake[2]: *** Waiting for unfinished jobs....
+39 warnings and 20 errors generated.
+gmake[2]: *** [src/gromacs/CMakeFiles/colvars_objlib.dir/build.make:401: src/gromacs/CMakeFiles/colvars_objlib.dir/__/external/colvars/colvarcomp_torchann.cpp.o] Error 1
+[ 32%] Built target options
+[ 32%] Built target pulling
+[ 32%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/decidegpuusage.cpp.o
+[ 32%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/checkpointhelper.cpp.o
+[ 32%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/computeglobalselement.cpp.o
+[ 32%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/reportgpuusage.cpp.o
+[ 32%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/findallgputasks.cpp.o
+[ 32%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/resourcedivision.cpp.o
+[ 32%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/domdechelper.cpp.o
+[ 32%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/andersentemperaturecoupling.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/expandedensembleelement.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/mttk.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/compositesimulatorelement.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/firstorderpressurecoupling.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/modularsimulator.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/freeenergyperturbationdata.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/parrinellorahmanbarostat.cpp.o
+[ 34%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/decidesimulationworkload.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/constraintelement.cpp.o
+[ 34%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/usergpuids.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/nosehooverchains.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/energydata.cpp.o
+[ 34%] Building CXX object src/gromacs/taskassignment/CMakeFiles/taskassignment.dir/taskassignment.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/statepropagatordata.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/velocityscalingtemperaturecoupling.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/trajectoryelement.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/forceelement.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/pullelement.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/propagator.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/signallers.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/simulatoralgorithm.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/referencetemperaturemanager.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/topologyholder.cpp.o
+[ 34%] Building CXX object src/gromacs/modularsimulator/CMakeFiles/modularsimulator.dir/pmeloadbalancehelper.cpp.o
+gmake[1]: *** [CMakeFiles/Makefile2:5785: src/gromacs/CMakeFiles/colvars_objlib.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
+[ 34%] Built target taskassignment
+[ 34%] Built target modularsimulator
+gmake: *** [Makefile:166: all] Error 2
