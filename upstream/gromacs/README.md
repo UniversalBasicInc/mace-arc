@@ -46,22 +46,37 @@ MACE-MP-0 reproduces the ASE/MACE reference forces to 1.2e-05 relative on the GP
 withheld from mdrun, `GMX_NN_DEVICE=gpu` fails with the new message and the automatic mode falls back
 to the CPU with a warning.
 
-Review pass 2026-10-16 (fresh-eyes review of the patches + host CPU-tier builds, GCC 12, `main` + this commit)
-found and fixed, now in the patch: `GMX_NNPOT=OFF` stub constructor not updated (build failed); LibTorch
-header check also linked, failing with GCC (now compile-only via `CMAKE_TRY_COMPILE_TARGET_TYPE`) and
-cached its failure so its own advice did not work (now `unset(... CACHE)` before the check); Intel GPU
-unit-test case ran on SYCL builds with a non-XPU LibTorch and would have failed (now gated on
-`GMX_TORCH_XPU`); DPC++ builds targeting NVIDIA/AMD got Intel/XPU messages and the CMake warning (now
-vendor-checked at runtime, `GMX_DPCPP_HAVE_INTEL_TARGET` in CMake); `<c10/xpu/XPUFunctions.h>` include
-guard matched its use site; a process without an assigned GPU (grompp) got a warning about mdrun (now uses
-the first XPU like CUDA uses the current device); docs state the same-runtime requirement and
-`ZE_FLAT_DEVICE_HIERARCHY=FLAT` for multi-tile GPUs (device matching by `sycl::device` identity cannot
-match GROMACS sub-devices against LibTorch root devices; not testable on the single-tile B70 — say so in
-the MR). After the fixes: `GMX_GPU=OFF GMX_NNPOT=OFF` builds `gmx` and the full Sphinx manual (no warnings
-in touched files); `GMX_GPU=OFF GMX_NNPOT=TORCH` (CPU LibTorch 2.14.1) builds and passes 18/18;
-`GMX_GPU=CUDA GMX_NNPOT=TORCH` (LibTorch cu126) builds `gmx` and the test binary (CUDA tests cannot run:
-no NVIDIA driver on the current kernel; the `torch::hasCUDA()` assertion they hit is upstream code and
-identical on unpatched `main`). B70 re-validation: see RESULTS below once recorded.
+Review pass 2026-10-16 (fresh-eyes review of the patches + host CPU-tier builds with GCC 12 + B70 re-run,
+`main` + this commit). Found and fixed, all now in the patch:
+- `GMX_NNPOT=OFF` stub constructor not updated (every no-torch build failed).
+- LibTorch header check also linked (fails with GCC; now compile-only via `CMAKE_TRY_COMPILE_TARGET_TYPE`)
+  and cached its failure so its own advice did not work (now `unset(... CACHE)` before the check).
+- Intel GPU unit-test case ran on SYCL builds with a non-XPU LibTorch and would have failed (gated on
+  `GMX_TORCH_XPU`).
+- DPC++ builds targeting NVIDIA/AMD got Intel/XPU wording and the CMake warning (vendor check at runtime,
+  `GMX_DPCPP_HAVE_INTEL_TARGET` in CMake). `<c10/xpu/XPUFunctions.h>` include guard matches its use site.
+- A process without an assigned GPU (grompp's model check, mdrun with all GPU work on the CPU) warned about
+  mdrun; it now uses the first XPU, as the CUDA/HIP paths use the current device. Verified on the B70:
+  grompp loads the model on the GPU, `mdrun -nb cpu ...` with `GMX_NN_DEVICE=gpu` gives rel 1.19e-05.
+- Device matching compares the Intel device UUID (`ext_intel_device_info_uuid`) before falling back to handle
+  identity, so a device GROMACS holds through OpenCL still matches LibTorch's Level Zero enumeration. The
+  unit tests pass with both backends visible (18/18) and with Level Zero only (18/18).
+- Docs (nnpot.rst) now state the two runtime requirements found the hard way: one SYCL runtime in the process
+  (GROMACS's oneAPI 2026.1 `libsycl.so.9` build 20260724 and the LibTorch wheel's bundled 2026.1.0.20260617
+  copy crash each other's side when mixed: oneAPI-first → null call in LibTorch's oneDNN graph-capture query;
+  LibTorch-first → crash in GROMACS's USM free at teardown when the OpenCL device was chosen), and a single
+  SYCL backend visible (`ONEAPI_DEVICE_SELECTOR=level_zero:gpu`, which GROMACS itself recommends when it sees a
+  GPU through two backends), plus `ZE_FLAT_DEVICE_HIERARCHY=FLAT` on multi-tile GPUs (identity/UUID match
+  cannot pair GROMACS sub-devices with LibTorch root devices; not testable on the single-tile B70 — say so in
+  the MR).
+
+After the fixes: B70 (SYCL build, LibTorch 2.14.1+xpu, LibTorch runtime first, Level Zero only): unit tests
+18/18; Si512 MACE-MP-0 forces vs ASE rel 1.19e-05 with mdrun on the GPU and again with all mdrun GPU work on
+the CPU; auto mode picks the XPU; with the GPU hidden from the process `GMX_NN_DEVICE=gpu` fails with the
+new message. Host: `GMX_GPU=OFF GMX_NNPOT=OFF` builds `gmx` and the full Sphinx manual (no warnings in
+touched files); `GMX_GPU=OFF GMX_NNPOT=TORCH` (CPU LibTorch) builds and passes 18/18; `GMX_GPU=CUDA
+GMX_NNPOT=TORCH` (LibTorch cu126) builds `gmx` and the test binary (CUDA tests cannot run: no NVIDIA driver on
+the current kernel; the `torch::hasCUDA()` assertion they hit is upstream code, identical on unpatched `main`).
 
 Note for the feature MR: `main` carries the same `pairs-shifts` typo in lines the feature patch touches as
 context, so the feature branch needs a trivial rebase once the fix is merged up from release-2026.

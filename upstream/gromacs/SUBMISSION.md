@@ -32,7 +32,8 @@ Proposal:
 - mdrun passes the `DeviceInformation` of the rank's device to the MD modules through the
   simulation-setup notifier (nullptr on CPU ranks).
 - `TorchModel` matches that `sycl::device` against LibTorch's XPU enumeration
-  (`c10::xpu::get_raw_device`) and runs the model on the same card mdrun uses.
+  (`c10::xpu::get_raw_device`, by Intel device UUID with handle identity as fallback) and runs the
+  model on the same card mdrun uses.
 - Device type and availability resolved by name instead of hard-coded CUDA; explicit messages for
   "LibTorch built without XPU" and "device not visible to LibTorch". A process without an assigned
   GPU (grompp, or mdrun with all GPU work on the CPU) uses the first XPU, as CUDA/HIP use the
@@ -50,6 +51,10 @@ foundation MLIP reproduces its ASE reference forces to 1.2e-05 relative, both wi
 the CPU; with the GPU hidden from the process, `GMX_NN_DEVICE=gpu` fails with the new message. Also
 built: GMX_NNPOT=OFF, CPU-only LibTorch (tests pass), CUDA LibTorch (compile only). No functional
 change for CUDA/HIP builds.
+
+Run-time requirements, documented in nnpot.rst: GROMACS and LibTorch must share one SYCL runtime
+(two different `libsycl.so.9` builds in one process crash either side), and a single SYCL backend
+should be visible (`ONEAPI_DEVICE_SELECTOR=level_zero:gpu`).
 
 Caveat for reviewers with multi-tile GPUs (Max series): the match is by `sycl::device` identity, and
 GROMACS partitions root devices into tiles while LibTorch enumerates root devices, so in COMPOSITE
