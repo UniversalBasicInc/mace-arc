@@ -68,8 +68,8 @@ anything reviewers want run. MR ready; happy to split or reshape it.
 
 Same content as the commit messages plus "Fixes #A" / "Refs #B", the validation paragraph above, the
 CI note, a note that the feature branch needs a trivial rebase once the fix is merged up from
-release-2026 (same lines appear as context), and an AI-assistance disclosure line. The commits carry only the DCO sign-off; whether to add
-the Claude co-author trailer is per-repo (ask Dylan before pushing).
+release-2026 (same lines appear as context), and an AI-assistance disclosure line. The commits carry no trailer: GROMACS does not use Signed-off-by, and the Claude co-author trailer
+is left off (AI assistance is disclosed in the MR text instead).
 
 ## Open choice
 

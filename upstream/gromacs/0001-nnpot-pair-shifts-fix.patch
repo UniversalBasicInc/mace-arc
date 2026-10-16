@@ -1,4 +1,4 @@
-From e95f6f3a847ca5c22c6a4e34911599c9d161db77 Mon Sep 17 00:00:00 2001
+From e2fa12a85bd3cd1f7f650896a1e633359d499b24 Mon Sep 17 00:00:00 2001
 From: Dylan Holdren <Dylan@UniversalBasicInc.com>
 Date: Thu, 15 Oct 2026 20:17:49 -0400
 Subject: [PATCH] Fix NNPot pair-list subscription for models requesting only
@@ -11,8 +11,6 @@ was therefore never given a pair list. Use the option name "pair-shifts",
 and add tests that each pair-list input requests the pair-list range.
 
 Fixes #PLACEHOLDER
-
-Signed-off-by: Dylan Holdren <Dylan@UniversalBasicInc.com>
 ---
  docs/release-notes/2026/2026.5.rst            | 10 ++++
  src/gromacs/applied_forces/nnpot/nnpot.cpp    |  4 +-

@@ -1,8 +1,9 @@
 # GROMACS upstream candidates (NOT submitted)
 
 Two independent changes against the official GROMACS repository (GitLab, `gitlab.com/gromacs/gromacs`),
-produced on 2026-10-15, formatted with clang-format 18.1.8 (the version GROMACS CI uses), signed off
-as Dylan Holdren. Both carry an `#PLACEHOLDER` issue reference: GROMACS wants an issue first, then a
+produced on 2026-10-15, formatted with clang-format 18.1.8 (the version GROMACS CI uses), authored
+as Dylan Holdren. GROMACS does not use Signed-off-by (none of the last 200 commits on main carry one), so the
+commits carry no trailer. Both carry an `#PLACEHOLDER` issue reference: GROMACS wants an issue first, then a
 merge request that references it.
 
 ## 1. `0001-nnpot-pair-shifts-fix.patch` — bug fix, target branch `release-2026`
@@ -86,6 +87,17 @@ Verification round 2 (2026-10-16, after the review fixes):
   only reports changed lines, so the gate is clean.
 - Rebase check: the fix applies on `main` and the feature cherry-picks on top of it with no conflicts.
 - Not possible on this box: CUDA tests (no NVIDIA driver on the 6.18 kernel), HIP and AdaptiveCpp builds.
+
+Verification round 3 (2026-10-16, second cold review of the final patch): no functional defects; fixed in the
+patch: Signed-off-by dropped from both commits (not a GROMACS convention); a distinct error when LibTorch sees
+a CUDA/HIP device but the GROMACS build has no matching GPU support (the old assert's information, which the
+first version had lost); the LibTorch header check is cached keyed on LibTorch version + C++ standard +
+compiler instead of re-running on every configure (verified: 0 re-runs on reconfigure); nnpot.rst says the
+main rank is what matters; the XPU message names ZE_FLAT_DEVICE_HIERARCHY=FLAT; UUID query guarded by
+SYCL_EXT_INTEL_DEVICE_INFO >= 5 like the rest of the tree; a rank with no GPU and no XPU visible gets the
+neutral "no matching device" message; install guide no longer cites an unverified LibTorch XPU download.
+Re-validated after: B70 unit tests 18/18 (Level Zero only and both backends), Si512 rel 1.19e-05 with mdrun
+on the GPU and with mdrun GPU work on the CPU; host NNPot-off + Sphinx, CPU-torch 18/18, CUDA build OK.
 
 Note for the feature MR: `main` carries the same `pairs-shifts` typo in lines the feature patch touches as
 context, so the feature branch needs a trivial rebase once the fix is merged up from release-2026.
