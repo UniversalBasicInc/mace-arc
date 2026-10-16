@@ -8,7 +8,7 @@ Tone: plain first person, say what was checked and what was not, no claims beyon
 
 ## Issue A — bug report (fix MR → release-2026). Template: Bug
 
-**POSTED 2026-10-17 as https://gitlab.com/gromacs/gromacs/-/issues/5753** (label quick action was consumed but no label applied: non-member; maintainers triage). Fix commit amended to `Fixes #5753`, release note `:issue:`5753`` (JARVIS wt-fix, commit ad89e096). Branch push to the fork and the MR still pending.
+**POSTED 2026-10-17 as https://gitlab.com/gromacs/gromacs/-/issues/5753** (label quick action was consumed but no label applied: non-member; maintainers triage). Fix commit amended to `Fixes #5753`, release note `:issue:`5753`` (JARVIS wt-fix, commit ad89e096). Branch `nnpot-pair-shifts-fix` pushed to the fork by Dylan (ad89e096). **MR OPENED 2026-10-17: https://gitlab.com/gromacs/gromacs/-/merge_requests/6370 → release-2026**, 3 files, author DylanHoldren, not Draft. At open: no pipeline (fork MRs need a maintainer to trigger CI), `closes_issues` empty right after creation (re-check), status not_approved. Next: watch for review; do not touch the branch unless asked.
 
 **Title:** NNPot: models that request `pair-shifts` without `atom-pairs` never receive a pair list
 
