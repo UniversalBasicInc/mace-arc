@@ -53,8 +53,9 @@ anything reviewers want run. MR ready; happy to split or reshape it.
 
 ## MR descriptions
 
-Same content as the commit messages plus "Fixes #A" / "Refs #B", the validation paragraph above, and
-the CI note. Both end with the Claude Code co-author trailer already on the commits.
+Same content as the commit messages plus "Fixes #A" / "Refs #B", the validation paragraph above, the
+CI note, and an AI-assistance disclosure line. The commits carry only the DCO sign-off; whether to add
+the Claude co-author trailer is per-repo (ask Dylan before pushing).
 
 ## Open choice
 
