@@ -1,4 +1,4 @@
-From b8df343a93803cacf850c8d09b820ee367dbe729 Mon Sep 17 00:00:00 2001
+From 085cf4cac0838aef91d8f2b36924184f0727478c Mon Sep 17 00:00:00 2001
 From: Dylan Holdren <Dylan@UniversalBasicInc.com>
 Date: Thu, 15 Oct 2026 20:17:48 -0400
 Subject: [PATCH] Run neural network potentials on Intel GPUs through LibTorch
@@ -18,7 +18,7 @@ since PyTorch 2.14 and later require C++20.
 
 The NNPot unit tests now also run the GPU cases on Intel devices.
 
-Refs #PLACEHOLDER
+Refs #5754
 ---
  cmake/gmxManageNNPot.cmake                    |  36 ++++
  docs/install-guide/index.rst                  |   7 +

@@ -75,6 +75,8 @@ fix; the tests do not need LibTorch. Related only by area: #5721, !6265.
 
 ## Issue B — proposal (XPU MR → main). Template: Feature
 
+**POSTED 2026-10-17 as https://gitlab.com/gromacs/gromacs/-/issues/5754** (MACE-MP-0 named; no label: non-member; forum post skipped). Feature commit amended to `Refs #5754` (JARVIS wt-xpu). Branch `nnpot-xpu` NOT yet pushed to the fork (Dylan runs `push-fork.sh /data/mace-arc/gmx/wt-xpu nnpot-xpu`); Draft MR → main waits for his yes.
+
 **Title:** NNPot: run the LibTorch model on Intel GPUs (LibTorch XPU backend)
 
 **Summary**
@@ -137,13 +139,13 @@ AdaptiveCpp. Related: !5099 (device selection), #5532. Draft MR to follow if thi
 Fix MR (→ release-2026): `Fixes #5753.` + one sentence: "Use the documented `pair-shifts` spelling when
 deciding whether to request the pair list; adds five tests for the subscriptions and a 2026.5 note."
 
-Feature MR (→ main, opened as Draft): `Refs #B.` + "Runs NNPot inference on Intel GPUs through LibTorch
+Feature MR (→ main, opened as Draft): `Refs #5754.` + "Runs NNPot inference on Intel GPUs through LibTorch
 XPU; details and validation in the issue. Needs a trivial rebase once !<fix MR> is merged up from
 release-2026. Developed with AI assistance (Claude Code); every change was reviewed and validated by
 me on the hardware listed in the issue."
 
 ## Choices still open
 
-- Name MACE-MP-0 (as drafted) or write "a published foundation MLIP".
+- ~~Name MACE-MP-0~~ decided 10-17: named.
 - Whether to also post a short note on the GROMACS developer forum, as the contribute guide suggests
   for new functionality. The issue covers the same ground; a forum post is optional.
