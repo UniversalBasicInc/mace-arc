@@ -1,77 +1,135 @@
 # Submission text (drafts, nothing posted)
 
-## Issue A — bug (for the fix MR → release-2026)
+Written to match how this tracker is actually used: issues follow the repository templates
+(`.gitlab/issue_templates/Bug.md`, `Feature.md`); merge-request descriptions in this area are one or
+two lines ("Closes #NNNN." plus a sentence). The contribute guide asks for advance discussion of new
+functionality, so the feature goes in as an issue first and the MR opens as a **Draft** that points at it.
+Tone: plain first person, say what was checked and what was not, no claims beyond the evidence.
 
-**Title:** NNPot: pair list never requested for models whose inputs include `pair-shifts` but not `atom-pairs`
+## Issue A — bug report (fix MR → release-2026). Template: Bug
 
-**Body:**
+**Title:** NNPot: models that request `pair-shifts` without `atom-pairs` never receive a pair list
 
-`src/gromacs/applied_forces/nnpot/nnpot.cpp` subscribes the module to the pair-list range and
-pair-list construction notifications only when the model inputs contain `"atom-pairs"` or
-`"pairs-shifts"`. The documented option is `pair-shifts` (`nnpot-model-input*`, see
-`docs/reference-manual/special/nnpot.rst`), so a model that asks for `pair-shifts` without
-`atom-pairs` never gets a pair list and the shifts tensor is empty.
+**Summary**
 
-Affects: release-2026 (2026.3 confirmed), main.
+In `src/gromacs/applied_forces/nnpot/nnpot.cpp` (lines 180 and 210 on release-2026), the NNPot
+module subscribes to the pair-list range and to the pair-list construction signal only when one of
+the model inputs is `atom-pairs` or `pairs-shifts`. The option value is spelled `pair-shifts`
+everywhere else: the mdp documentation, `nnpotoptions.cpp`, `nnpotforceprovider.cpp` and
+`torchmodel.cpp` (which rejects anything else as an unknown input). So a model that lists
+`pair-shifts` without `atom-pairs` is never subscribed. I think this is simply a typo.
 
-Fix: use the real option name; add unit tests that the range is requested for `atom-pairs`,
-for `pair-shifts`, and not requested without pair-list inputs. MR follows.
+To be upfront about the impact: I do not know of a model that asks for the shifts without the pair
+list they index, so I would not expect anyone to have hit this in practice. With `atom-pairs` present
+the condition short-circuits and everything works. It is a small consistency fix rather than a
+reported problem; I am filing it because the configuration is accepted and documented, and the
+failure is silent.
 
-## Issue B — feature (for the XPU MR → main)
+**GROMACS version**
 
-**Title:** NNPot: run the LibTorch model on Intel GPUs (XPU) using the device assigned to mdrun
+Present in 2026.0 through 2026.4 and at the current tips of release-2026 and main. The lines date
+from the pair-list input (!5532, #5228) and have not been touched since. I noticed that !5764 on main
+replaces this check with a cutoff test as part of the dictionary I/O change, so this is aimed at
+release-2026 only.
 
-**Body:**
+**Steps to reproduce**
 
-NNPot currently runs its LibTorch model on CUDA when available and on the CPU otherwise. LibTorch
-builds with XPU support (PyTorch >= 2.5, Intel GPUs through oneAPI) expose the same device API
-under `torch::kXPU`, and the SYCL build of mdrun already owns a `sycl::device` for the rank.
+An mdp with `nnpot-model-input1 = atom-positions`, `nnpot-model-input2 = atom-numbers`,
+`nnpot-model-input3 = pair-shifts`, a positive `nnpot-pair-cutoff`, and no `atom-pairs` entry. I do
+not have a public model with this input set, so the merge request reproduces it with unit tests on the
+module's subscriptions rather than with a simulation.
 
-Proposal:
+**What is the current bug behavior?**
 
-- mdrun passes the `DeviceInformation` of the rank's device to the MD modules through the
-  simulation-setup notifier (nullptr on CPU ranks).
-- `TorchModel` matches that `sycl::device` against LibTorch's XPU enumeration
-  (`c10::xpu::get_raw_device`, by Intel device UUID with handle identity as fallback) and runs the
-  model on the same card mdrun uses.
-- Device type and availability resolved by name instead of hard-coded CUDA; explicit messages for
-  "LibTorch built without XPU" and "device not visible to LibTorch". A process without an assigned
-  GPU (grompp, or mdrun with all GPU work on the CPU) uses the first XPU, as CUDA/HIP use the
-  current device. DPC++ builds targeting NVIDIA/AMD GPUs are unchanged.
-- CMake: `GMX_TORCH_XPU` from the `torch_xpu` target; configure-time warning for SYCL build +
-  non-XPU LibTorch; test-compile of the LibTorch headers against the configured C++ standard
-  (PyTorch >= 2.14 needs C++20) so the failure is one message, not a compiler wall.
-- `<torch/xpu.h>` behind `__has_include` so LibTorch 2.0–2.3 still builds.
-- The GPU cases of the NNPot unit tests run on Intel devices too and receive the device from the
-  test (addresses the "better way to handle device selection" comment there).
+grompp passes (its model check feeds a non-empty dummy shift list), mdrun requests no pair-list range
+and never subscribes to the pair-list signal, `doPairlist_` stays false, and the model receives an
+empty (0, 3) shift tensor at every step with no error or warning.
 
-Validated on an Intel Arc Pro B70 with a SYCL DPC++ 2026.1 build of main and LibTorch 2.14.1+xpu:
-unit tests pass with the GPU case on the B70; a 512-atom Si pure-NNP case with a published
-foundation MLIP reproduces its ASE reference forces to 1.2e-05 relative, both with mdrun on the GPU and with all mdrun GPU work on
-the CPU; with the GPU hidden from the process, `GMX_NN_DEVICE=gpu` fails with the new message. Also
-built: GMX_NNPOT=OFF, CPU-only LibTorch (tests pass), CUDA LibTorch (compile only). No functional
-change for CUDA/HIP builds.
+**What did you expect the correct behavior to be?**
 
-Run-time requirements, documented in nnpot.rst: GROMACS and LibTorch must share one SYCL runtime
-(two different `libsycl.so.9` builds in one process crash either side), and a single SYCL backend
-should be visible (`ONEAPI_DEVICE_SELECTOR=level_zero:gpu`).
+The module requests the pair list for `pair-shifts` the same way it does for `atom-pairs`.
 
-Caveat for reviewers with multi-tile GPUs (Max series): the match is by `sycl::device` identity, and
-GROMACS partitions root devices into tiles while LibTorch enumerates root devices, so in COMPOSITE
-mode the match fails and inference stays on the CPU with a warning; `ZE_FLAT_DEVICE_HIERARCHY=FLAT`
-avoids it and the docs say so. Not testable here (B70 is single-tile).
+**Possible fixes**
 
-GROMACS CI has no Intel GPU runner for the LibTorch path; the B70 is available for testing
-anything reviewers want run. MR ready; happy to split or reshape it.
+Use the documented spelling in the two conditions. Merge request follows: the two spelling changes,
+five small tests in `tests/nnpot.cpp` (range requested for `atom-pairs` and for `pair-shifts`, none
+without pair inputs; subscription to the pair-list signal for `pair-shifts`, none without pair inputs),
+and a 2026.5 release note. The two `pair-shifts` tests fail on the unpatched tree and pass with the
+fix; the tests do not need LibTorch. Related only by area: #5721, !6265.
 
-## MR descriptions
+/label ~Bug
 
-Same content as the commit messages plus "Fixes #A" / "Refs #B", the validation paragraph above, the
-CI note, a note that the feature branch needs a trivial rebase once the fix is merged up from
-release-2026 (same lines appear as context), and an AI-assistance disclosure line. The commits carry no trailer: GROMACS does not use Signed-off-by, and the Claude co-author trailer
-is left off (AI assistance is disclosed in the MR text instead).
+## Issue B — proposal (XPU MR → main). Template: Feature
 
-## Open choice
+**Title:** NNPot: run the LibTorch model on Intel GPUs (LibTorch XPU backend)
 
-Issue B and the feature MR say "a published foundation MLIP", not MACE. Naming MACE is more useful
-to reviewers; leave it unnamed until the MACE work is cleared for public.
+**Summary**
+
+The NNPot interface runs the model on CUDA (and HIP) when GROMACS is built for those, and on the CPU
+otherwise. LibTorch also has an XPU backend for Intel GPUs (PyTorch >= 2.5, through oneAPI), and a SYCL
+build of GROMACS already holds a `sycl::device` for the rank. I have a working implementation that lets
+the model run on the same Intel GPU mdrun uses, and would like to know whether it is wanted in this form
+before polishing it further.
+
+**Use cases**
+
+People with Intel GPUs (Arc, Data Center Max) who want to run MLIPs through GROMACS without the model
+falling back to the CPU. Today a SYCL build with LibTorch silently runs inference on the CPU.
+
+**Impact**
+
+No change for CUDA/HIP builds beyond the plumbing (a `DeviceInformation` pointer handed to the MD
+modules), and no change for CPU builds. The new code is behind `GMX_SYCL_DPCPP` and a CMake-detected
+`GMX_TORCH_XPU`. The maintenance question is the usual one for a new backend: I can test on an
+Arc Pro B70 and am willing to keep doing so; CI has no Intel GPU runner for the LibTorch path.
+
+**Detailed description**
+
+- mdrun passes the rank's `DeviceInformation` to the MD modules through the simulation-setup notifier
+  (nullptr on ranks without a GPU).
+- `TorchModel` matches that device against LibTorch's XPU enumeration (by Intel device UUID, falling
+  back to handle identity) and runs on `torch::kXPU` with that index. If the main rank has no GPU
+  assigned (or for the grompp model check) it uses the first XPU, mirroring what the CUDA path does
+  with the current device.
+- Device type and availability are resolved by name instead of hard-coding CUDA, with distinct
+  messages for "LibTorch built without XPU support", "device not visible to LibTorch", and (restored
+  from the old assert) "LibTorch sees a CUDA/HIP device but this build has no matching GPU support".
+- CMake: `GMX_TORCH_XPU` from the `torch_xpu` target; a warning for a DPC++ Intel build paired with a
+  non-XPU LibTorch; a configure-time check that the LibTorch headers compile with the configured C++
+  standard (PyTorch >= 2.14 needs C++20), cached per LibTorch/standard/compiler.
+- `<torch/xpu.h>` is included only if it exists, so LibTorch 2.0–2.3 still builds.
+- The GPU cases of the NNPot unit tests run on Intel devices too and receive the device from the test.
+- Docs: nnpot.rst, install guide, 2027 major-features note.
+
+**Requirements**
+
+A LibTorch with XPU support, and at run time one SYCL runtime in the process (two different `libsycl`
+builds crash either side; I hit this) and a single SYCL backend visible (`ONEAPI_DEVICE_SELECTOR`),
+both documented. Multi-tile GPUs: the device match cannot pair GROMACS sub-devices with LibTorch root
+devices, so `ZE_FLAT_DEVICE_HIERARCHY=FLAT` is needed there; I could not test that (single-tile card).
+
+**Links/references/implementations**
+
+What I verified: unit tests on the B70 (Level Zero only, and with both backends visible); a 512-atom
+Si system with MACE-MP-0 reproduces its ASE forces to 1.2e-5 relative, with mdrun on the GPU and with
+mdrun's own GPU work on the CPU; builds with NNPot off, with a CPU-only LibTorch (tests pass), and with
+a CUDA LibTorch (compile only — no NVIDIA driver on that machine right now). Not tested: HIP,
+AdaptiveCpp. Related: !5099 (device selection), #5532. Draft MR to follow if this is welcome.
+
+/label ~Feature
+
+## MR descriptions (short, like the neighbours)
+
+Fix MR (→ release-2026): `Fixes #A.` + one sentence: "Use the documented `pair-shifts` spelling when
+deciding whether to request the pair list; adds five tests for the subscriptions and a 2026.5 note."
+
+Feature MR (→ main, opened as Draft): `Refs #B.` + "Runs NNPot inference on Intel GPUs through LibTorch
+XPU; details and validation in the issue. Needs a trivial rebase once !<fix MR> is merged up from
+release-2026. Developed with AI assistance (Claude Code); every change was reviewed and validated by
+me on the hardware listed in the issue."
+
+## Choices still open
+
+- Name MACE-MP-0 (as drafted) or write "a published foundation MLIP".
+- Whether to also post a short note on the GROMACS developer forum, as the contribute guide suggests
+  for new functionality. The issue covers the same ground; a forum post is optional.

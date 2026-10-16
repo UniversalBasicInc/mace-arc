@@ -1,4 +1,4 @@
-From e2fa12a85bd3cd1f7f650896a1e633359d499b24 Mon Sep 17 00:00:00 2001
+From 2536c4f70e0a306be492cb3504a716e0dd6100e0 Mon Sep 17 00:00:00 2001
 From: Dylan Holdren <Dylan@UniversalBasicInc.com>
 Date: Thu, 15 Oct 2026 20:17:49 -0400
 Subject: [PATCH] Fix NNPot pair-list subscription for models requesting only
@@ -12,31 +12,32 @@ and add tests that each pair-list input requests the pair-list range.
 
 Fixes #PLACEHOLDER
 ---
- docs/release-notes/2026/2026.5.rst            | 10 ++++
+ docs/release-notes/2026/2026.5.rst            | 11 +++
  src/gromacs/applied_forces/nnpot/nnpot.cpp    |  4 +-
- .../applied_forces/nnpot/tests/nnpot.cpp      | 59 +++++++++++++++++++
- 3 files changed, 71 insertions(+), 2 deletions(-)
+ .../applied_forces/nnpot/tests/nnpot.cpp      | 89 +++++++++++++++++++
+ 3 files changed, 102 insertions(+), 2 deletions(-)
 
 diff --git a/docs/release-notes/2026/2026.5.rst b/docs/release-notes/2026/2026.5.rst
-index d70ded9..a6b0888 100644
+index d70ded9..719b9b4 100644
 --- a/docs/release-notes/2026/2026.5.rst
 +++ b/docs/release-notes/2026/2026.5.rst
-@@ -15,6 +15,16 @@ previous 2026.4 version, to fix known issues.
- Fixes where mdrun could behave incorrectly
- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+@@ -50,6 +50,17 @@ This has been present in versions 2026.0 to 2026.4.
  
-+NNPot models requesting only ``pair-shifts`` did not receive a pair list
-+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+ :issue:`5736`
+ 
++Fixed NNPot pair-list input for models requesting only ``pair-shifts``
++""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 +
 +A neural network potential model whose inputs include ``pair-shifts`` but not
 +``atom-pairs`` was never subscribed to the pair-list construction, because the
-+option name was misspelled in the check, so the model was passed an empty
-+shift list.
++option name was misspelled in that check, so the model was passed an empty
++shift list without any error. Models that also request ``atom-pairs`` were not
++affected. This has been present in versions 2026.0 to 2026.4.
 +
 +:issue:`PLACEHOLDER`
 +
- Fixed incorrect LJ-PME forces and energies for perturbed particles
- """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+ Fixes for ``gmx`` tools
+ ^^^^^^^^^^^^^^^^^^^^^^^
  
 diff --git a/src/gromacs/applied_forces/nnpot/nnpot.cpp b/src/gromacs/applied_forces/nnpot/nnpot.cpp
 index 34ff8ab..30107d2 100644
@@ -61,7 +62,7 @@ index 34ff8ab..30107d2 100644
              const auto notifyPairlistFunction = [this](const MDModulesPairlistConstructedSignal& signal)
              { nnpotForceProvider_->setPairlist(signal); };
 diff --git a/src/gromacs/applied_forces/nnpot/tests/nnpot.cpp b/src/gromacs/applied_forces/nnpot/tests/nnpot.cpp
-index a3d1bcf..b05adf9 100644
+index a3d1bcf..4ff2f09 100644
 --- a/src/gromacs/applied_forces/nnpot/tests/nnpot.cpp
 +++ b/src/gromacs/applied_forces/nnpot/tests/nnpot.cpp
 @@ -45,13 +45,16 @@
@@ -81,7 +82,7 @@ index a3d1bcf..b05adf9 100644
  #include "gromacs/utility/keyvaluetree.h"
  #include "gromacs/utility/keyvaluetreebuilder.h"
  #include "gromacs/utility/keyvaluetreetransform.h"
-@@ -77,6 +80,28 @@ public:
+@@ -77,6 +80,38 @@ public:
          mdpValueBuilder_.rootObject().addValue("nnpot-active", std::string("true"));
      }
  
@@ -90,7 +91,8 @@ index a3d1bcf..b05adf9 100644
 +    {
 +        for (size_t i = 0; i < inputs.size(); ++i)
 +        {
-+            mdpValueBuilder_.rootObject().addValue("nnpot-model-input" + std::to_string(i + 1), inputs[i]);
++            const std::string key = "nnpot-model-input" + std::to_string(i + 1);
++            mdpValueBuilder_.rootObject().addValue(key, inputs[i]);
 +        }
 +        mdpValueBuilder_.rootObject().addValue("nnpot-pair-cutoff", pairCutoff);
 +    }
@@ -107,10 +109,19 @@ index a3d1bcf..b05adf9 100644
 +        return { ranges.ranges().begin(), ranges.ranges().end() };
 +    }
 +
++    //! Whether the module subscribes to the pair-list construction signal during the run
++    bool subscribesToPairlistConstruction()
++    {
++        MDModulesNotifiers notifiers;
++        NNPotModule_->subscribeToSimulationRunNotifications(&notifiers);
++        using Signal = const MDModulesPairlistConstructedSignal&;
++        return notifiers.simulationRunNotifier_.haveSubscribers<Signal>();
++    }
++
      //! build an mdp options tree that sets the options for the NNPot module
      void makeNNPotModuleWithSetOptions()
      {
-@@ -104,6 +129,40 @@ protected:
+@@ -104,6 +139,60 @@ protected:
      MpiComm                    mpiComm_{ MpiComm::SingleRank{} };
  };
  
@@ -146,6 +157,26 @@ index a3d1bcf..b05adf9 100644
 +    makeNNPotModuleWithSetOptions();
 +
 +    EXPECT_TRUE(requestedPairlistRanges().empty());
++}
++
++//! A model that takes only the periodic pair shifts is told when the pair list is built
++TEST_F(NNPotTest, PairShiftsInputSubscribesToPairlistConstruction)
++{
++    addMdpOptionNNPotActive();
++    addMdpOptionModelInputs({ "atom-positions", "atom-numbers", "pair-shifts" }, "0.5");
++    makeNNPotModuleWithSetOptions();
++
++    EXPECT_TRUE(subscribesToPairlistConstruction());
++}
++
++//! Without pair-list inputs the module does not ask to be told about the pair list
++TEST_F(NNPotTest, NoPairlistInputDoesNotSubscribeToPairlistConstruction)
++{
++    addMdpOptionNNPotActive();
++    addMdpOptionModelInputs({ "atom-positions", "atom-numbers" }, "0.5");
++    makeNNPotModuleWithSetOptions();
++
++    EXPECT_FALSE(subscribesToPairlistConstruction());
 +}
 +
  TEST_F(NNPotTest, ForceProviderLackingInputThrows)

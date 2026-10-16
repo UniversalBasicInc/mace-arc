@@ -15,8 +15,17 @@ real option name and adds three unit tests to `tests/nnpot.cpp` (range requested
 for `pair-shifts`, none without pair-list inputs) plus a 2026.5 release note.
 
 Validated: CPU build of `release-2026` + this commit with a CPU LibTorch 2.14.1, `nnpot_applied_forces-test`
-21/21 pass. Of the three new tests only `PairShiftsInputRequestsPairlistRange` fails on the unpatched tree;
-the other two pin the surrounding behaviour.
+23/23 pass. Five new tests (two for the setup range, one for no range, two for the run-time pair-list
+subscription). EXECUTED against the unpatched `nnpot.cpp`: the two `pair-shifts` tests fail, the other three
+pass; with the fix all pass. Tests need no LibTorch (nnpot.cpp is built with GMX_NNPOT=OFF too).
+
+Verification round 4 (2026-10-16, adversarial review of the fix's premise, via GitLab API on current tips):
+typo present in v2026.0–v2026.4 and both branch tips, introduced in 948d5ef944 (!5532, 2025-11-06), untouched
+since; no prior issue/MR mentions it; `pairs-shifts` is accepted nowhere (torchmodel.cpp rejects it); nothing
+validates input combinations, so the path is reachable; practical impact near zero (shifts are indexed by
+the pair list, no sensible model requests one without the other) — the issue says so plainly. Open !5764
+(dictionary I/O, main) will remove these lines, so the fix targets release-2026 only. Release note moved to
+the end of its section, title in the neighbours' style, affected versions stated.
 
 ## 2. `0001-nnpot-intel-gpu-xpu.patch` — feature, target branch `main`
 
