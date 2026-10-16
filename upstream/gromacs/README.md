@@ -37,7 +37,7 @@ Runs NNPot inference on Intel GPUs through LibTorch's XPU backend.
 - Docs: reference manual NNPot page, install guide (C++20, Intel GPUs), 2027 major-features note.
 
 Validated on an Arc Pro B70 (SYCL DPC++ 2026.1 build of `main` + this commit, LibTorch 2.14.1+xpu):
-`nnpot_applied_forces-test` 21/21 pass with the GPU case on the B70; a 512-atom Si pure-NNP case with
+`nnpot_applied_forces-test` 18/18 pass with the GPU case on the B70 (main has 18 tests; the 3 new tests live on the fix branch); a 512-atom Si pure-NNP case with
 MACE-MP-0 reproduces the ASE/MACE reference forces to 1.2e-05 relative on the GPU; with the GPU
 withheld from mdrun, `GMX_NN_DEVICE=gpu` fails with the new message and the automatic mode falls back
 to the CPU with a warning. A CUDA-tier build of the same code was compile-checked (2026.3 tree, A5000).
