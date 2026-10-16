@@ -1,4 +1,4 @@
-From 031ffce99473b534216a0af643dd3babf8206e2d Mon Sep 17 00:00:00 2001
+From d60df40dfc6cd442e28fee60e226e0796d9e1b01 Mon Sep 17 00:00:00 2001
 From: Dylan Holdren <Dylan@UniversalBasicInc.com>
 Date: Thu, 15 Oct 2026 20:17:48 -0400
 Subject: [PATCH] Run neural network potentials on Intel GPUs through LibTorch
@@ -22,7 +22,7 @@ Refs #PLACEHOLDER
 
 Signed-off-by: Dylan Holdren <Dylan@UniversalBasicInc.com>
 ---
- cmake/gmxManageNNPot.cmake                    |  25 +++
+ cmake/gmxManageNNPot.cmake                    |  28 ++++
  docs/install-guide/index.rst                  |   7 +
  docs/reference-manual/special/nnpot.rst       |   4 +
  docs/release-notes/2027/major/features.rst    |  11 ++
@@ -30,6 +30,7 @@ Signed-off-by: Dylan Holdren <Dylan@UniversalBasicInc.com>
  src/gromacs/applied_forces/nnpot/nnpot.cpp    |  11 +-
  .../nnpot/nnpotforceprovider.cpp              |   9 +-
  .../applied_forces/nnpot/nnpotforceprovider.h |   9 +-
+ .../nnpot/nnpotforceprovider_stub.cpp         |   3 +-
  .../applied_forces/nnpot/nnpotoptions.cpp     |  10 ++
  .../applied_forces/nnpot/nnpotoptions.h       |  14 ++
  .../nnpot/tests/nnpotforceprovider.cpp        |  31 ++--
@@ -37,24 +38,27 @@ Signed-off-by: Dylan Holdren <Dylan@UniversalBasicInc.com>
  src/gromacs/applied_forces/nnpot/torchmodel.h |  11 +-
  src/gromacs/mdrun/runner.cpp                  |   1 +
  src/gromacs/mdrunutility/mdmodulesnotifiers.h |   7 +-
- 15 files changed, 253 insertions(+), 46 deletions(-)
+ 16 files changed, 258 insertions(+), 47 deletions(-)
 
 diff --git a/cmake/gmxManageNNPot.cmake b/cmake/gmxManageNNPot.cmake
-index 2302180..ec098f7 100644
+index 2302180..4c2fb8c 100644
 --- a/cmake/gmxManageNNPot.cmake
 +++ b/cmake/gmxManageNNPot.cmake
-@@ -82,6 +82,31 @@ if(NOT GMX_NNPOT STREQUAL "OFF")
+@@ -82,6 +82,34 @@ if(NOT GMX_NNPOT STREQUAL "OFF")
                                  "compiled with the cxx11 ABI, which is required for building GROMACS.")
          endif()
  
 +        # LibTorch headers from PyTorch 2.14 onwards require C++20; detect it at configure
 +        # time instead of failing deep inside the build.
++        # Compile only (static-library target type): the check must not depend on linking LibTorch.
 +        include(CheckCXXSourceCompiles)
-+        set(CMAKE_REQUIRED_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
++        set(_gmx_try_compile_target_type_bak "${CMAKE_TRY_COMPILE_TARGET_TYPE}")
++        set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 +        set(CMAKE_REQUIRED_INCLUDES "${TORCH_INCLUDE_DIRS}")
 +        check_cxx_source_compiles("#include <torch/torch.h>\nint main() { return 0; }" TORCH_HEADERS_COMPILE_WITH_CXX_STANDARD)
-+        unset(CMAKE_REQUIRED_FLAGS)
 +        unset(CMAKE_REQUIRED_INCLUDES)
++        set(CMAKE_TRY_COMPILE_TARGET_TYPE "${_gmx_try_compile_target_type_bak}")
++        unset(_gmx_try_compile_target_type_bak)
 +        if(NOT TORCH_HEADERS_COMPILE_WITH_CXX_STANDARD)
 +            message(FATAL_ERROR "The LibTorch ${Torch_VERSION} headers do not compile with C++${CMAKE_CXX_STANDARD}. "
 +                                "Recent LibTorch versions require C++20; configure with -DCMAKE_CXX_STANDARD=20, "
@@ -224,6 +228,20 @@ index 1bcd870..7a62b20 100644
  
      //! Destroy force provider for NNPot
      ~NNPotForceProvider();
+diff --git a/src/gromacs/applied_forces/nnpot/nnpotforceprovider_stub.cpp b/src/gromacs/applied_forces/nnpot/nnpotforceprovider_stub.cpp
+index 9b2d0c5..17a3859 100644
+--- a/src/gromacs/applied_forces/nnpot/nnpotforceprovider_stub.cpp
++++ b/src/gromacs/applied_forces/nnpot/nnpotforceprovider_stub.cpp
+@@ -55,7 +55,8 @@ CLANG_DIAGNOSTIC_IGNORE("-Wmissing-noreturn")
+ 
+ NNPotForceProvider::NNPotForceProvider(const NNPotParameters& nnpotParameters,
+                                        const MDLogger&        logger,
+-                                       const MpiComm&         mpiComm) :
++                                       const MpiComm&         mpiComm,
++                                       const DeviceInformation* /*deviceInfo*/) :
+     params_(nnpotParameters),
+     atomNumbers_(params_.numAtoms_, -1),
+     inputToLocalIndex_(params_.numAtoms_, -1),
 diff --git a/src/gromacs/applied_forces/nnpot/nnpotoptions.cpp b/src/gromacs/applied_forces/nnpot/nnpotoptions.cpp
 index 7279599..63764dd 100644
 --- a/src/gromacs/applied_forces/nnpot/nnpotoptions.cpp

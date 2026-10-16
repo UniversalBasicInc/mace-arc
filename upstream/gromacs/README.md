@@ -40,7 +40,15 @@ Validated on an Arc Pro B70 (SYCL DPC++ 2026.1 build of `main` + this commit, Li
 `nnpot_applied_forces-test` 18/18 pass with the GPU case on the B70 (main has 18 tests; the 3 new tests live on the fix branch); a 512-atom Si pure-NNP case with
 MACE-MP-0 reproduces the ASE/MACE reference forces to 1.2e-05 relative on the GPU; with the GPU
 withheld from mdrun, `GMX_NN_DEVICE=gpu` fails with the new message and the automatic mode falls back
-to the CPU with a warning. A CUDA-tier build of the same code was compile-checked (2026.3 tree, A5000).
+to the CPU with a warning.
+
+Review pass 2026-10-16 (host CPU tier, GCC 12, `main` + this commit) found and fixed two defects, now in the patch:
+the `GMX_NNPOT=OFF` stub constructor had not been updated to the new signature (build failed), and the
+LibTorch header check also linked, which fails with GCC (now compile-only via `CMAKE_TRY_COMPILE_TARGET_TYPE`).
+After the fix: `GMX_GPU=OFF GMX_NNPOT=OFF` builds `gmx` and the full Sphinx manual (no warnings in touched
+files); `GMX_GPU=OFF GMX_NNPOT=TORCH` (CPU LibTorch 2.14.1) builds and passes 18/18; `GMX_GPU=CUDA GMX_NNPOT=TORCH`
+(LibTorch cu126) builds `gmx` and the test binary. The CUDA tests could not run (no NVIDIA driver on the
+current kernel); the `torch::hasCUDA()` assertion they hit is upstream code and identical on unpatched `main`.
 
 ## Before submitting (process, not code)
 
