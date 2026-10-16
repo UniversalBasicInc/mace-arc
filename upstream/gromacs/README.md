@@ -78,6 +78,15 @@ touched files); `GMX_GPU=OFF GMX_NNPOT=TORCH` (CPU LibTorch) builds and passes 1
 GMX_NNPOT=TORCH` (LibTorch cu126) builds `gmx` and the test binary (CUDA tests cannot run: no NVIDIA driver on
 the current kernel; the `torch::hasCUDA()` assertion they hit is upstream code, identical on unpatched `main`).
 
+Verification round 2 (2026-10-16, after the review fixes):
+- Full GROMACS test suites, CPU builds with CPU LibTorch: fix branch 102/102, feature branch 104/104.
+- `admin/copyright.sh` check: clean on both branches (headers use the open-ended `YYYY-` form).
+- clang-tidy 18.1.8 (CI version) with the in-tree `src/.clang-tidy` on every touched translation unit: every
+  warning inside a touched file is on a pre-existing upstream line (git blame = main/release-2026 head); CI
+  only reports changed lines, so the gate is clean.
+- Rebase check: the fix applies on `main` and the feature cherry-picks on top of it with no conflicts.
+- Not possible on this box: CUDA tests (no NVIDIA driver on the 6.18 kernel), HIP and AdaptiveCpp builds.
+
 Note for the feature MR: `main` carries the same `pairs-shifts` typo in lines the feature patch touches as
 context, so the feature branch needs a trivial rebase once the fix is merged up from release-2026.
 
