@@ -8,6 +8,8 @@ Tone: plain first person, say what was checked and what was not, no claims beyon
 
 ## Issue A — bug report (fix MR → release-2026). Template: Bug
 
+**POSTED 2026-10-17 as https://gitlab.com/gromacs/gromacs/-/issues/5753** (label quick action was consumed but no label applied: non-member; maintainers triage). Fix commit amended to `Fixes #5753`, release note `:issue:`5753`` (JARVIS wt-fix, commit ad89e096). Branch push to the fork and the MR still pending.
+
 **Title:** NNPot: models that request `pair-shifts` without `atom-pairs` never receive a pair list
 
 **Summary**
@@ -132,7 +134,7 @@ AdaptiveCpp. Related: !5099 (device selection), #5532. Draft MR to follow if thi
 
 ## MR descriptions (short, like the neighbours)
 
-Fix MR (→ release-2026): `Fixes #A.` + one sentence: "Use the documented `pair-shifts` spelling when
+Fix MR (→ release-2026): `Fixes #5753.` + one sentence: "Use the documented `pair-shifts` spelling when
 deciding whether to request the pair list; adds five tests for the subscriptions and a 2026.5 note."
 
 Feature MR (→ main, opened as Draft): `Refs #B.` + "Runs NNPot inference on Intel GPUs through LibTorch

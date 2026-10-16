@@ -1,4 +1,4 @@
-From 2536c4f70e0a306be492cb3504a716e0dd6100e0 Mon Sep 17 00:00:00 2001
+From ad89e096c7432d6f6e60a82966f53d34843b47ce Mon Sep 17 00:00:00 2001
 From: Dylan Holdren <Dylan@UniversalBasicInc.com>
 Date: Thu, 15 Oct 2026 20:17:49 -0400
 Subject: [PATCH] Fix NNPot pair-list subscription for models requesting only
@@ -10,7 +10,7 @@ pair-list construction notifications tested for the misspelled input name
 was therefore never given a pair list. Use the option name "pair-shifts",
 and add tests that each pair-list input requests the pair-list range.
 
-Fixes #PLACEHOLDER
+Fixes #5753
 ---
  docs/release-notes/2026/2026.5.rst            | 11 +++
  src/gromacs/applied_forces/nnpot/nnpot.cpp    |  4 +-
@@ -18,7 +18,7 @@ Fixes #PLACEHOLDER
  3 files changed, 102 insertions(+), 2 deletions(-)
 
 diff --git a/docs/release-notes/2026/2026.5.rst b/docs/release-notes/2026/2026.5.rst
-index d70ded9..719b9b4 100644
+index d70ded9..8bb69a5 100644
 --- a/docs/release-notes/2026/2026.5.rst
 +++ b/docs/release-notes/2026/2026.5.rst
 @@ -50,6 +50,17 @@ This has been present in versions 2026.0 to 2026.4.
@@ -34,7 +34,7 @@ index d70ded9..719b9b4 100644
 +shift list without any error. Models that also request ``atom-pairs`` were not
 +affected. This has been present in versions 2026.0 to 2026.4.
 +
-+:issue:`PLACEHOLDER`
++:issue:`5753`
 +
  Fixes for ``gmx`` tools
  ^^^^^^^^^^^^^^^^^^^^^^^
