@@ -34,7 +34,9 @@ Proposal:
 - `TorchModel` matches that `sycl::device` against LibTorch's XPU enumeration
   (`c10::xpu::get_raw_device`) and runs the model on the same card mdrun uses.
 - Device type and availability resolved by name instead of hard-coded CUDA; explicit messages for
-  "no GPU on this rank", "LibTorch built without XPU", "device not visible to LibTorch".
+  "LibTorch built without XPU" and "device not visible to LibTorch". A process without an assigned
+  GPU (grompp, or mdrun with all GPU work on the CPU) uses the first XPU, as CUDA/HIP use the
+  current device. DPC++ builds targeting NVIDIA/AMD GPUs are unchanged.
 - CMake: `GMX_TORCH_XPU` from the `torch_xpu` target; configure-time warning for SYCL build +
   non-XPU LibTorch; test-compile of the LibTorch headers against the configured C++ standard
   (PyTorch >= 2.14 needs C++20) so the failure is one message, not a compiler wall.
@@ -44,9 +46,15 @@ Proposal:
 
 Validated on an Intel Arc Pro B70 with a SYCL DPC++ 2026.1 build of main and LibTorch 2.14.1+xpu:
 unit tests pass with the GPU case on the B70; a 512-atom Si pure-NNP case with a published
-foundation MLIP reproduces its ASE reference forces to 1.2e-05 relative; with the GPU withheld from
-mdrun, `GMX_NN_DEVICE=gpu` fails with the new message and automatic mode falls back to the CPU with
-a warning. A CUDA build was compile-checked. No functional change for CUDA/HIP builds.
+foundation MLIP reproduces its ASE reference forces to 1.2e-05 relative, both with mdrun on the GPU and with all mdrun GPU work on
+the CPU; with the GPU hidden from the process, `GMX_NN_DEVICE=gpu` fails with the new message. Also
+built: GMX_NNPOT=OFF, CPU-only LibTorch (tests pass), CUDA LibTorch (compile only). No functional
+change for CUDA/HIP builds.
+
+Caveat for reviewers with multi-tile GPUs (Max series): the match is by `sycl::device` identity, and
+GROMACS partitions root devices into tiles while LibTorch enumerates root devices, so in COMPOSITE
+mode the match fails and inference stays on the CPU with a warning; `ZE_FLAT_DEVICE_HIERARCHY=FLAT`
+avoids it and the docs say so. Not testable here (B70 is single-tile).
 
 GROMACS CI has no Intel GPU runner for the LibTorch path; the B70 is available for testing
 anything reviewers want run. MR ready; happy to split or reshape it.
@@ -54,7 +62,8 @@ anything reviewers want run. MR ready; happy to split or reshape it.
 ## MR descriptions
 
 Same content as the commit messages plus "Fixes #A" / "Refs #B", the validation paragraph above, the
-CI note, and an AI-assistance disclosure line. The commits carry only the DCO sign-off; whether to add
+CI note, a note that the feature branch needs a trivial rebase once the fix is merged up from
+release-2026 (same lines appear as context), and an AI-assistance disclosure line. The commits carry only the DCO sign-off; whether to add
 the Claude co-author trailer is per-repo (ask Dylan before pushing).
 
 ## Open choice
