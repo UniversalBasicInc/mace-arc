@@ -218,5 +218,10 @@ simply absent on XPU.
 
 ## Open
 
-- Propose upstream, when cleared: GROMACS `pair-shifts` typo + XPU device selection; a MACE docs note that `device="xpu"` works.
+- Propose upstream, when cleared. The two GROMACS changes are now submission-grade patches against the official
+  branches (`upstream/gromacs/`, see its README): the `pair-shifts` fix with regression tests for `release-2026`, and
+  the Intel GPU feature for `main` with mdrun handing its device to the modules, configure-time LibTorch XPU and
+  C++ standard checks, Intel devices in the unit tests, and docs. Both validated on the B70 (unit tests 21/21 and
+  18/18, Si512 forces at 1.2e-05, negative and auto-mode controls). Issue numbers are the only placeholders.
+- A MACE docs note that `device="xpu"` works as shipped, and the wrapper improvements for `gmx-nnpot-tools`.
 - Larger systems / MACE-MP medium; torch.compile on XPU; memory ceiling on the 32 GB B70.

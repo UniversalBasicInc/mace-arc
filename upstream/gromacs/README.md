@@ -1,0 +1,63 @@
+# GROMACS upstream candidates (NOT submitted)
+
+Two independent changes against the official GROMACS repository (GitLab, `gitlab.com/gromacs/gromacs`),
+produced on 2026-10-15, formatted with clang-format 18.1.8 (the version GROMACS CI uses), signed off
+as Dylan Holdren. Both carry an `#PLACEHOLDER` issue reference: GROMACS wants an issue first, then a
+merge request that references it.
+
+## 1. `0001-nnpot-pair-shifts-fix.patch` — bug fix, target branch `release-2026`
+
+`nnpot.cpp` subscribed the module to the pair-list range and the pair-list construction notifications
+only when the model inputs included `"atom-pairs"` or the misspelled `"pairs-shifts"`. A model whose
+inputs include `pair-shifts` but not `atom-pairs` therefore never got a pair list. The fix uses the
+real option name and adds three unit tests to `tests/nnpot.cpp` (range requested for `atom-pairs`,
+for `pair-shifts`, none without pair-list inputs) plus a 2026.5 release note.
+
+Validated: CPU build of `release-2026` + this commit with a CPU LibTorch 2.14.1, `nnpot_applied_forces-test`
+21/21 pass (the three new tests fail on the unpatched tree, as they should).
+
+## 2. `0001-nnpot-intel-gpu-xpu.patch` — feature, target branch `main`
+
+Runs NNPot inference on Intel GPUs through LibTorch's XPU backend.
+
+- mdrun passes the `DeviceInformation` of the device assigned to the rank to the MD modules through
+  the simulation-setup notifier (new `const DeviceInformation*` notification; nullptr for CPU ranks).
+- `NNPotOptions` stores it, `NNPotForceProvider` and `TorchModel` take it; `TorchModel` matches the
+  rank's `sycl::device` against the devices LibTorch enumerates (`c10::xpu::get_raw_device`) and runs
+  the model on `torch::kXPU` with that index. Nothing changes for CUDA/HIP builds beyond the plumbing.
+- Device type and availability are resolved by name instead of hard-coding CUDA; messages explain
+  why a GPU cannot be used (no GPU on the rank, LibTorch without XPU support, device not visible).
+- CMake: `GMX_TORCH_XPU` is set when the found LibTorch exports the `torch_xpu` target; a SYCL build
+  paired with a LibTorch that lacks it warns at configure time; the LibTorch headers are test-compiled
+  with the configured C++ standard (PyTorch >= 2.14 requires C++20) and configure fails with a
+  clear message instead of a wall of compiler errors.
+- `<torch/xpu.h>` is included only when it exists (`__has_include`), so LibTorch 2.0–2.3 still builds.
+- Unit tests: the GPU cases of `nnpotforceprovider.cpp` now also run on Intel devices and pass the
+  device to the provider (the "better way to handle device selection" the test comment asked for).
+- Docs: reference manual NNPot page, install guide (C++20, Intel GPUs), 2027 major-features note.
+
+Validated on an Arc Pro B70 (SYCL DPC++ 2026.1 build of `main` + this commit, LibTorch 2.14.1+xpu):
+`nnpot_applied_forces-test` 21/21 pass with the GPU case on the B70; a 512-atom Si pure-NNP case with
+MACE-MP-0 reproduces the ASE/MACE reference forces to 1.2e-05 relative on the GPU; with the GPU
+withheld from mdrun, `GMX_NN_DEVICE=gpu` fails with the new message and the automatic mode falls back
+to the CPU with a warning. A CUDA-tier build of the same code was compile-checked (2026.3 tree, A5000).
+
+## Before submitting (process, not code)
+
+1. Open two GitLab issues (bug; feature proposal — the NNPot maintainers are the KTH group that wrote
+   the interface; a short discussion on the feature issue before the MR is the polite route).
+2. Replace `#PLACEHOLDER` in both commit messages with the issue numbers.
+3. Push to a fork, open the MRs against `release-2026` and `main`; CI runs clang-format, clang-tidy,
+   copyright checks (headers are untouched here) and the unit tests.
+4. Mention the validation above and offer the B70 as a test machine; GROMACS CI has no Intel GPU runner
+   for the LibTorch path.
+
+## Rebuilding the branches
+
+```
+git clone https://gitlab.com/gromacs/gromacs.git && cd gromacs
+git checkout -b nnpot-pair-shifts-fix release-2026 && git am ../0001-nnpot-pair-shifts-fix.patch
+git checkout -b nnpot-xpu main && git am ../0001-nnpot-intel-gpu-xpu.patch
+```
+The patch scripts that generated the edits (`../apply_pair_shifts_fix.py`, `../apply_xpu_main.py`) are kept
+for reference; the patches are the source of truth.
