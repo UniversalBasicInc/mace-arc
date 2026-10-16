@@ -27,6 +27,23 @@ the pair list, no sensible model requests one without the other) — the issue s
 (dictionary I/O, main) will remove these lines, so the fix targets release-2026 only. Release note moved to
 the end of its section, title in the neighbours' style, affected versions stated.
 
+Verification round 5 (2026-10-16, end-to-end on mdrun, Dylan: "can you verify it works with the wording
+fixed?"): a three-input TorchScript model (`repro-pair-shifts/make_model.py`: positions, atomic numbers,
+pair-shifts; energy = number of shift rows received) run on the Si512 cell (0.6 nm cutoff) with CPU-only
+gmx builds of the release-2026 tip `4cdcf92` and of the fix `2536c4f`:
+
+| binary | model inputs | NN Potential (kJ/mol) = shift rows |
+|---|---|---|
+| unfixed 4cdcf92 | positions, numbers, pair-shifts | 0 (grompp passes, no warning) |
+| fixed 2536c4f | positions, numbers, pair-shifts | 11403 |
+| unfixed 4cdcf92 | + atom-pairs (model `make_model2.py`: pairs + 1000·shifts) | 11414403 → 11403 pairs, 11403 shifts |
+| fixed 2536c4f | + atom-pairs | 11414403 (unchanged) |
+
+Independent count from conf.gro with minimum image (`count_pairs.py`): 11403 unordered pairs within 0.6 nm.
+So with the fix a shifts-only model receives exactly the pair list it should; without it, nothing; and the
+atom-pairs path is unchanged. Energies in `repro-pair-shifts/*.xvg` (e-* fixed, eu-* unfixed). Builds:
+JARVIS `build-fix-git`, `build-unfixed-git` (worktree `wt-unfixed`).
+
 ## 2. `0001-nnpot-intel-gpu-xpu.patch` — feature, target branch `main`
 
 Runs NNPot inference on Intel GPUs through LibTorch's XPU backend.

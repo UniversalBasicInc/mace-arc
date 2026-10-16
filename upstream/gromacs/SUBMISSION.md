@@ -36,8 +36,20 @@ release-2026 only.
 
 An mdp with `nnpot-model-input1 = atom-positions`, `nnpot-model-input2 = atom-numbers`,
 `nnpot-model-input3 = pair-shifts`, a positive `nnpot-pair-cutoff`, and no `atom-pairs` entry. I do
-not have a public model with this input set, so the merge request reproduces it with unit tests on the
-module's subscriptions rather than with a simulation.
+not know of a public model with this input set, so I reproduced it with a three-input TorchScript model
+that returns the number of shift rows it received as the energy, on a 512-atom Si cell with a 0.6 nm
+cutoff:
+
+```python
+class ShiftCounter(torch.nn.Module):
+    def forward(self, positions, atom_numbers, pair_shifts):
+        return float(pair_shifts.shape[0]) + 0.0 * positions.sum()
+```
+
+NN Potential reported by mdrun: 0 on the release-2026 tip, 11403 with the fix, which is the number of
+pairs within the cutoff (the same model with `atom-pairs` added reports 11403 pairs and 11403 shifts,
+before and after). The merge request carries unit tests on the module's subscriptions rather than this
+model.
 
 **What is the current bug behavior?**
 
