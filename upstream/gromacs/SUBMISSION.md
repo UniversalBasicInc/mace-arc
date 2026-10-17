@@ -1,4 +1,4 @@
-# Submission text (drafts, nothing posted)
+# Submission text — ALL FOUR POSTED 2026-10-17: #5753, !6370 (release-2026), #5754, !6372 Draft (main)
 
 Written to match how this tracker is actually used: issues follow the repository templates
 (`.gitlab/issue_templates/Bug.md`, `Feature.md`); merge-request descriptions in this area are one or
@@ -75,7 +75,7 @@ fix; the tests do not need LibTorch. Related only by area: #5721, !6265.
 
 ## Issue B — proposal (XPU MR → main). Template: Feature
 
-**POSTED 2026-10-17 as https://gitlab.com/gromacs/gromacs/-/issues/5754** (MACE-MP-0 named; no label: non-member; forum post skipped). Feature commit amended to `Refs #5754` (JARVIS wt-xpu). Branch `nnpot-xpu` NOT yet pushed to the fork (Dylan runs `push-fork.sh /data/mace-arc/gmx/wt-xpu nnpot-xpu`); Draft MR → main waits for his yes.
+**POSTED 2026-10-17 as https://gitlab.com/gromacs/gromacs/-/issues/5754** (MACE-MP-0 named; no label: non-member; forum post skipped). Feature commit amended to `Refs #5754` (JARVIS wt-xpu). Branch `nnpot-xpu` pushed to the fork by Dylan (085cf4c). **Draft MR OPENED 2026-10-17: https://gitlab.com/gromacs/gromacs/-/merge_requests/6372 → main**, 16 files, no conflicts with main at open, no pipeline (maintainer-triggered). Token file deleted from JARVIS after this; any reply to reviewers goes through Dylan's browser or a new token.
 
 **Title:** NNPot: run the LibTorch model on Intel GPUs (LibTorch XPU backend)
 
