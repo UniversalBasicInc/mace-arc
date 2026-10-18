@@ -1,10 +1,14 @@
-# GROMACS upstream candidates (NOT submitted)
+# GROMACS upstream contributions
 
-Two independent changes against the official GROMACS repository (GitLab, `gitlab.com/gromacs/gromacs`),
-produced on 2026-10-15, formatted with clang-format 18.1.8 (the version GROMACS CI uses), authored
-as Dylan Holdren. GROMACS does not use Signed-off-by (none of the last 200 commits on main carry one), so the
-commits carry no trailer. Both carry an `#PLACEHOLDER` issue reference: GROMACS wants an issue first, then a
-merge request that references it.
+Two independent changes against the official GROMACS repository (`gitlab.com/gromacs/gromacs`), formatted with
+clang-format 18.1.8 (the version GROMACS CI uses). Submitted 2026-10-17:
+
+| patch | issue | merge request | target |
+|---|---|---|---|
+| `0001-nnpot-pair-shifts-fix.patch` | [#5753](https://gitlab.com/gromacs/gromacs/-/issues/5753) | [!6370](https://gitlab.com/gromacs/gromacs/-/merge_requests/6370) | `release-2026` |
+| `0001-nnpot-intel-gpu-xpu.patch` | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6372](https://gitlab.com/gromacs/gromacs/-/merge_requests/6372) (Draft) | `main` |
+
+The rest of this file is the verification record that backs them.
 
 ## 1. `0001-nnpot-pair-shifts-fix.patch` — bug fix, target branch `release-2026`
 
@@ -27,8 +31,7 @@ the pair list, no sensible model requests one without the other) — the issue s
 (dictionary I/O, main) will remove these lines, so the fix targets release-2026 only. Release note moved to
 the end of its section, title in the neighbours' style, affected versions stated.
 
-Verification round 5 (2026-10-16, end-to-end on mdrun, Dylan: "can you verify it works with the wording
-fixed?"): a three-input TorchScript model (`repro-pair-shifts/make_model.py`: positions, atomic numbers,
+Verification round 5 (2026-10-16, end-to-end on mdrun): a three-input TorchScript model (`repro-pair-shifts/make_model.py`: positions, atomic numbers,
 pair-shifts; energy = number of shift rows received) run on the Si512 cell (0.6 nm cutoff) with CPU-only
 gmx builds of the release-2026 tip `4cdcf92` and of the fix `2536c4f`:
 
@@ -41,8 +44,7 @@ gmx builds of the release-2026 tip `4cdcf92` and of the fix `2536c4f`:
 
 Independent count from conf.gro with minimum image (`count_pairs.py`): 11403 unordered pairs within 0.6 nm.
 So with the fix a shifts-only model receives exactly the pair list it should; without it, nothing; and the
-atom-pairs path is unchanged. Energies in `repro-pair-shifts/*.xvg` (e-* fixed, eu-* unfixed). Builds:
-JARVIS `build-fix-git`, `build-unfixed-git` (worktree `wt-unfixed`).
+atom-pairs path is unchanged. Energies in `repro-pair-shifts/*.xvg` (e-* fixed, eu-* unfixed).
 
 ## 2. `0001-nnpot-intel-gpu-xpu.patch` — feature, target branch `main`
 
@@ -128,16 +130,6 @@ on the GPU and with mdrun GPU work on the CPU; host NNPot-off + Sphinx, CPU-torc
 Note for the feature MR: `main` carries the same `pairs-shifts` typo in lines the feature patch touches as
 context, so the feature branch needs a trivial rebase once the fix is merged up from release-2026.
 
-## Before submitting (process, not code)
-
-1. Open two GitLab issues (bug; feature proposal — the NNPot maintainers are the KTH group that wrote
-   the interface; a short discussion on the feature issue before the MR is the polite route).
-2. Replace `#PLACEHOLDER` in both commit messages with the issue numbers.
-3. Push to a fork, open the MRs against `release-2026` and `main`; CI runs clang-format, clang-tidy,
-   copyright checks (headers are untouched here) and the unit tests.
-4. Mention the validation above and offer the B70 as a test machine; GROMACS CI has no Intel GPU runner
-   for the LibTorch path.
-
 ## Rebuilding the branches
 
 ```
@@ -145,5 +137,4 @@ git clone https://gitlab.com/gromacs/gromacs.git && cd gromacs
 git checkout -b nnpot-pair-shifts-fix release-2026 && git am ../0001-nnpot-pair-shifts-fix.patch
 git checkout -b nnpot-xpu main && git am ../0001-nnpot-intel-gpu-xpu.patch
 ```
-The patch scripts that generated the edits (`../apply_pair_shifts_fix.py`, `../apply_xpu_main.py`) are kept
-for reference; the patches are the source of truth.
+Or take the branches `nnpot-pair-shifts-fix` and `nnpot-xpu` from `gitlab.com/DylanHoldren/gromacs`.

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # A5000 lane (kernel 6.1, driver 535), QUIET host (xmrig stopped with Dylan's go, 2026-10-15): A/B forces -> power -> NVT.
+ROOT=${MACE_ARC_ROOT:-/data/mace-arc}   # repository checkout (data disk on the original host)
 export HOME=/data/mace-cuda XDG_CACHE_HOME=/data/mace-cuda/.cache TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
-PY=/data/mace-cuda/venv/bin/python; cd /data/mace-arc/scripts; OUT=/data/mace-arc/results/ab
+PY=/data/mace-cuda/venv/bin/python; cd $ROOT/scripts; OUT=$ROOT/results/ab
 echo "xmrig $(systemctl is-active xmrig); load $(cut -d" " -f1-3 /proc/loadavg)"; set -x
 $PY mace_ab.py --device cuda --tag a5000 --out $OUT
 $PY mace_ab.py --device cuda --tag a5000cueq --cueq --dtypes float32 --out $OUT

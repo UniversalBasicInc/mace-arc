@@ -2,13 +2,13 @@
 
 Engineering record for running MACE (ACEsuit, e3nn/PyTorch) on an Intel GPU, which upstream MACE
 does not target (`--device` accepts `cuda`, `mps`, `cpu`; the cuEquivariance fast path is NVIDIA-only).
-Same method as the Boltz-2 port: unmodified science code → device-agnostic → forces validated
+Same method as the [Boltz-2 port](https://github.com/UniversalBasicInc/boltz2-intel-arc): unmodified science code → device-agnostic → forces validated
 against the CPU reference and an NVIDIA card in the same chassis → honest numbers.
 
 ## Environment
 
 - **Intel GPU:** Arc Pro B70 (Battlemage G31, PCI `8086:e223`), `xe` driver, host kernel 6.18.53 (source-built LTS; `e223` enters the xe ID table at 6.17).
-  User space in a podman container: Ubuntu 26.04, compute-runtime 26.35.39758.10, oneAPI 2026.1 (the Babel `arc-b70` image).
+  User space in a podman container: Ubuntu 26.04, compute-runtime 26.35.39758.10, oneAPI 2026.1 (a podman image built for the B70, because the compute runtime ships for Ubuntu only).
 - **NVIDIA GPU:** RTX A5000 (24 GB, sm_86), driver 535.261.03, host kernel 6.1 (Debian 12). Same machine: 2× AMD EPYC 7742, 128 threads.
   The two GPU tiers need two kernels on this host (NVIDIA 535 does not build on ≥ 6.17), so the lanes were run on different boots.
 - **PyTorch 2.14.1** on both: `+xpu` wheel (triton-xpu 3.8.0) and `+cu126` wheel (cuEquivariance 0.13.0). mace-torch 0.3.16, e3nn 0.4.4, ASE 3.29.
@@ -23,7 +23,7 @@ requirement is the `+xpu` PyTorch wheel. MACE's own device string check passes `
 
 ## Finding 2 — forces are correct to the dtype floor
 
-Same-dtype device delta read against the fp32 dtype floor, Babel-style:
+Same-dtype device delta read against the fp32 dtype floor (the device-vs-device difference only means something next to the precision-vs-precision difference):
 
 | System | xpu32 vs cpu32 (rel RMS) | cpu32 vs cpu64 (rel RMS) | xpu64 vs cpu64 (rel RMS) |
 |---|---|---|---|
@@ -56,7 +56,7 @@ A5000's forces by 6e-07 relative, a reordering of fp32 sums. The device is not i
 
 ## Finding 3 — the B70 does real FP64, and it is cheap here
 
-Xe2 has IEEE fp64 at ~1/14 of fp32 rate (~1.4 TFLOPS on the B70, see the Boltz findings §7).
+Xe2 has IEEE fp64 at ~1/14 of fp32 rate (~1.4 TFLOPS on the B70, measured in the Boltz-2 port's findings, §7).
 MACE in fp64 on the B70 costs only ~2.5× fp32 (Si512: 110 ms vs 44 ms), not 14×, because the e3nn
 path is launch/memory-bound, not FLOP-bound. fp64 on the B70 is still 4.5–5.8× faster than fp64 on
 the 128-thread EPYC. Geometry optimisation at full double precision is essentially free on this card.
@@ -152,7 +152,7 @@ interface knows CUDA and HIP devices only (`torchmodel.cpp: getMdrunActiveDevice
 - `scripts/gmx/check_wrapper.py`: the exported model, fed an ASE-built half list, reproduces the MACE ASE
   calculator: force RMS diff 6.2e-03 kJ/mol/nm (rel 1.1e-05), energy within 0.005 kJ/mol of −263 596. The
   shift-sign convention is the one the NNPot authors use in `gmx-nnpot-tools`.
-- `patches/gromacs-2026.3-nnpot-xpu.patch`: (a) with a DPC++ SYCL build, NNPot selects `torch::kXPU` when
+- `patches/gromacs-2026.3-nnpot-xpu.patch` (the first, combined form; the upstream submissions in `upstream/gromacs/` supersede it): (a) with a DPC++ SYCL build, NNPot selects `torch::kXPU` when
   LibTorch sees an Intel GPU; device type/availability are resolved by string instead of hard-coded CUDA;
   (b) **bug found in upstream** `nnpot.cpp`: the pair-list subscription tests for `"pairs-shifts"` while the
   option is `"pair-shifts"`, so a model that requests only `pair-shifts` never gets a pair list.
@@ -204,10 +204,9 @@ interface has driven a model on a non-NVIDIA/AMD GPU; the patch is 40 lines.
 
 - `xe` hwmon exposes cumulative energy counters (`energy1_input` = card, `energy2_input` = package, µJ), not an
   instantaneous `power1_input`; `mace_power.py` differentiates the card counter over 0.5 s windows.
-- The B70 lane lives in a container because Intel ships the compute runtime for Ubuntu 26.04 only; the
-  Debian 12 host cannot load it. Only `/dev/dri` crosses the boundary.
-- Keep `HOME`/`XDG_CACHE_HOME` on the data disk: the MACE model cache and uv's Python land in `~/.cache`,
-  and this host's root disk is at 97 %.
+- The B70 lane lives in a container because Intel ships the compute runtime for Ubuntu only; the Debian 12
+  host cannot load it. Only `/dev/dri` crosses the boundary.
+- Keep `HOME`/`XDG_CACHE_HOME` on a disk with room: the MACE model cache and uv's Python land in `~/.cache`.
 - `TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1` is needed for mace-torch 0.3.16 on torch 2.14 (model checkpoints are
   full pickles). `torch.jit.script` is deprecated in 2.14 but still works for e3nn.
 
@@ -218,10 +217,14 @@ simply absent on XPU.
 
 ## Open
 
-- Propose upstream, when cleared. The two GROMACS changes are now submission-grade patches against the official
-  branches (`upstream/gromacs/`, see its README): the `pair-shifts` fix with regression tests for `release-2026`, and
-  the Intel GPU feature for `main` with mdrun handing its device to the modules, configure-time LibTorch XPU and
-  C++ standard checks, Intel devices in the unit tests, and docs. Both validated on the B70 (unit tests 21/21 and
-  18/18, Si512 forces at 1.2e-05, negative and auto-mode controls). Issue numbers are the only placeholders.
+- **Submitted to GROMACS (2026-10-17).** The Intel GPU feature: issue
+  [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754), Draft merge request
+  [!6372](https://gitlab.com/gromacs/gromacs/-/merge_requests/6372) against `main`. The `pair-shifts` fix: issue
+  [#5753](https://gitlab.com/gromacs/gromacs/-/issues/5753), merge request
+  [!6370](https://gitlab.com/gromacs/gromacs/-/merge_requests/6370) against `release-2026`. Patches and the
+  verification record (five rounds, including an end-to-end reproduction of the fix with a shift-counting
+  model) are in `upstream/gromacs/`. Both await review.
 - A MACE docs note that `device="xpu"` works as shipped, and the wrapper improvements for `gmx-nnpot-tools`.
-- Larger systems / MACE-MP medium; torch.compile on XPU; memory ceiling on the 32 GB B70.
+- Not tested: HIP and AdaptiveCpp builds of the GROMACS change; multi-tile Intel GPUs (single-tile B70 only).
+- Larger systems and MACE-MP medium; `torch.compile` on XPU; a fused tensor-product path for XPU (the
+  cuEquivariance equivalent); memory ceiling on the 32 GB B70.
