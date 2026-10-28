@@ -6,8 +6,13 @@ in the same machine, molecular-dynamics stability checked, and GROMACS 2026 driv
 through its NNPot interface.
 
 **MACE itself needs no change.** PyTorch's `xpu` backend is enough. What this repository adds is the
-recipe, the validation record, and the GROMACS side: two contributions submitted upstream, and a patch
+recipe, the validation record, and the GROMACS side: three contributions upstream (one merged, two in review), and a patch
 for the 2026.3 release for people who want to build today.
+
+![64 water molecules simulated with MACE-MP-0 on an Intel Arc Pro B70](docs/img/water64_300K.gif)
+
+*Liquid water, 64 molecules, MACE-MP-0 small on an Arc Pro B70: 4 ps of Langevin dynamics at 300 K, rendered from
+`scripts/md_visual.py`. Silicon at 600 K is in [`docs/img/si512_600K.gif`](docs/img/si512_600K.gif).*
 
 ## Use it now
 
@@ -38,11 +43,17 @@ MACE-MP-0 small, diamond-Si supercells of 64, 512 and 1728 atoms. Full tables an
 | Forces, fp32, B70 vs A5000 | 1.6–1.8e-06 relative RMS, below each card's own fp32-vs-fp64 floor |
 | Forces, fp64, B70 vs A5000 and vs CPU | 4e-15: machine epsilon, the device is not in the answer |
 | Speed, e3nn path, fp32 | B70 44 ms / A5000 43 ms per force call at Si512; 128 / 128 ms at Si1728; both ~10× the EPYC |
-| Speed, fp64, Si512 | B70 110 ms, A5000 230 ms: **2.1× faster on the Arc** (Xe2 fp64 at 1/14 rate, GA102 at 1/32) |
+| Speed, fp64, Si512 | B70 107 ms, A5000 230 ms: **2.1× faster on the Arc** (Xe2 fp64 at 1/14 rate, GA102 at 1/32) |
 | Energy per step, e3nn path | B70 7.3 J vs A5000 9.1 J at Si512: 20 % less |
 | NVE, 20 ps at 1 fs | zero drift, no NaNs, statistically identical to the CPU lane |
 | NVT, 10 ps Langevin | identical temperature and energy statistics on B70, A5000 and A5000+cuEquivariance |
 | GROMACS NNPot, Si512 NVT | B70 2.93 ns/day, A5000 2.84 ns/day; forces match the ASE calculator to 1.2e-05 |
+
+![Forces on 512 Si atoms from the Arc, and their difference from the A5000](docs/img/si512_forces.png)
+
+![Force parity, Arc Pro B70 against RTX A5000, fp32 and fp64](docs/img/force_parity.png)
+
+![Force-call time, fp64 and board energy per call](docs/img/speed_energy.png)
 
 The honest caveat: this is the launch-bound e3nn path that Intel users get today. cuEquivariance, which
 exists for NVIDIA only, buys the A5000 1.8× at Si1728 and halves its energy per step. An equivalent fused
@@ -68,6 +79,8 @@ LibTorch must share one SYCL runtime (`libsycl`), so put the LibTorch wheel's `l
 `LD_LIBRARY_PATH` or build GROMACS with the oneAPI release that LibTorch bundles; expose a single SYCL backend
 (`ONEAPI_DEVICE_SELECTOR=level_zero:gpu`); the mdp key is `nnpot-pair-cutoff`.
 
+![GROMACS NVT on Si512 with NNPot on the Arc and on the A5000](docs/img/gromacs_nvt.png)
+
 `scripts/gmx/export_gmx_mace.py` exports MACE-MP-0 to TorchScript with the NNPot calling convention
 (positions nm→Å, GROMACS's half pair list mirrored with negated shifts, energy eV→kJ/mol);
 `check_wrapper.py`, `make_si_system.py`, `run_case.sh` and `compare_gmx.py` are the test case and the
@@ -81,6 +94,7 @@ force cross-check against the ASE calculator.
 | `scripts/mace_power.py` | joules per force call from the GPU energy counter (`xe` hwmon) or `nvidia-smi` |
 | `scripts/mace_nve.py`, `mace_nvt.py` | 20 ps NVE drift; 10 ps Langevin NVT |
 | `scripts/mace_fp64.py`, `mace_scale.py`, `mace_forces.py` | fp64 lane, size scaling, first probe |
+| `scripts/md_visual.py`, `scripts/plots/` | the MD runs behind the animations, and the figure and trajectory renderers (`make_figures.py`, `render_traj.py`) |
 | `scripts/run_b70_chain.sh`, `run_cuda_chain.sh` | the full lane on each card (paths via `MACE_ARC_ROOT`) |
 | `scripts/gmx/` | GROMACS export, test case, cross-check, builds |
 | `upstream/gromacs/` | the two upstream patches, verification record, end-to-end reproduction of the fix |
@@ -97,6 +111,9 @@ python scripts/mace_ab.py --device cuda --tag a5000 --out results/ab   # NVIDIA 
 python scripts/mace_ab.py --device cpu --tag cpu --out results/ab
 python scripts/mace_compare.py results/ab b70 a5000 cpu
 ```
+
+Figures: `python scripts/plots/make_figures.py` rebuilds `docs/img/*.png` from `results/`; the animations come from
+`scripts/md_visual.py` on the GPU (writes `results/visual/*.extxyz`, not committed) and `scripts/plots/render_traj.py`.
 
 GROMACS: build with the script for your tier, then `export_gmx_mace.py` → `make_si_system.py` → `run_case.sh` → `compare_gmx.py`.
 

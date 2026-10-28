@@ -1,12 +1,14 @@
 # GROMACS upstream contributions
 
-Two independent changes against the official GROMACS repository (`gitlab.com/gromacs/gromacs`), formatted with
-clang-format 18.1.8 (the version GROMACS CI uses). Submitted 2026-10-17:
+Changes against the official GROMACS repository (`gitlab.com/gromacs/gromacs`), formatted with
+clang-format 18.1.8 (the version GROMACS CI uses).
 
-| patch | issue | merge request | target |
-|---|---|---|---|
-| `0001-nnpot-pair-shifts-fix.patch` | [#5753](https://gitlab.com/gromacs/gromacs/-/issues/5753) | [!6370](https://gitlab.com/gromacs/gromacs/-/merge_requests/6370) | `release-2026` |
-| `0001-nnpot-intel-gpu-xpu.patch` | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6372](https://gitlab.com/gromacs/gromacs/-/merge_requests/6372) (Draft) | `main` |
+| patch | issue | merge request | target | state |
+|---|---|---|---|---|
+| `0001-nnpot-pair-shifts-fix.patch` | [#5753](https://gitlab.com/gromacs/gromacs/-/issues/5753) | [!6370](https://gitlab.com/gromacs/gromacs/-/merge_requests/6370) | `release-2026` | merged 2026-10-22, ships in 2026.5 |
+| `0001-nnpot-intel-gpu-xpu-v2.patch` | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6372](https://gitlab.com/gromacs/gromacs/-/merge_requests/6372) | `main` | v2 of 2026-10-27, replaces the v1 patch below |
+| `0001-nnpot-torch-cxx-standard.patch` | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6417](https://gitlab.com/gromacs/gromacs/-/merge_requests/6417) | `main` | opened 2026-10-28 |
+| `0001-nnpot-intel-gpu-xpu.patch` | #5754 | !6372 as first pushed 2026-10-17 | `main` | superseded by v2, kept as a record |
 
 The rest of this file is the verification record that backs them.
 
@@ -46,95 +48,92 @@ Independent count from conf.gro with minimum image (`count_pairs.py`): 11403 uno
 So with the fix a shifts-only model receives exactly the pair list it should; without it, nothing; and the
 atom-pairs path is unchanged. Energies in `repro-pair-shifts/*.xvg` (e-* fixed, eu-* unfixed).
 
-## 2. `0001-nnpot-intel-gpu-xpu.patch` — feature, target branch `main`
+## 2. `0001-nnpot-intel-gpu-xpu-v2.patch` — feature, target branch `main` (!6372, reworked 2026-10-27)
 
-Runs NNPot inference on Intel GPUs through LibTorch's XPU backend.
+Reviewer feedback on #5754 (Lukas Müllender 10-20, Andrey Alekseenko 10-27): the `DeviceInformation`
+notification of v1 should be its own preparatory MR (#5467), and the XPU support should be merged first
+without it, selecting the device through `GMX_NN_DEVICE`; C++20 should be applied only to the files that
+include the Torch headers. v2 does exactly that, in two commits:
 
-- mdrun passes the `DeviceInformation` of the device assigned to the rank to the MD modules through
-  the simulation-setup notifier (new `const DeviceInformation*` notification; nullptr for CPU ranks).
-- `NNPotOptions` stores it, `NNPotForceProvider` and `TorchModel` take it; `TorchModel` matches the
-  rank's `sycl::device` against the devices LibTorch enumerates (`c10::xpu::get_raw_device`) and runs
-  the model on `torch::kXPU` with that index. Nothing changes for CUDA/HIP builds beyond the plumbing.
-- Device type and availability are resolved by name instead of hard-coding CUDA; messages explain
-  why a GPU cannot be used (LibTorch without XPU support, device not visible to LibTorch). A rank
-  without an assigned GPU (grompp's model check, or mdrun with all GPU work on the CPU) uses the
-  first XPU LibTorch sees, exactly as the CUDA/HIP paths use the current device. DPC++ builds that
-  target NVIDIA/AMD GPUs keep the old behaviour and never see Intel/XPU wording.
-- CMake: `GMX_TORCH_XPU` is set when the found LibTorch exports the `torch_xpu` target; a SYCL build
-  paired with a LibTorch that lacks it warns at configure time; the LibTorch headers are test-compiled
-  with the configured C++ standard (PyTorch >= 2.14 requires C++20) and configure fails with a
-  clear message instead of a wall of compiler errors.
-- `<torch/xpu.h>` is included only when it exists (`__has_include`), so LibTorch 2.0–2.3 still builds.
-- Unit tests: the GPU cases of `nnpotforceprovider.cpp` now also run on Intel devices and pass the
-  device to the provider (the "better way to handle device selection" the test comment asked for).
-- Docs: reference manual NNPot page, install guide (C++20, Intel GPUs), 2027 major-features note.
+**XPU support (7 files, +91/-10).** `torchmodel.cpp` gains an `#elif GMX_TORCH_XPU` branch next to CUDA and
+HIP: when the LibTorch found at configure time exports the `torch_xpu` target, the model runs on the first
+Intel GPU LibTorch enumerates, by default and with `GMX_NN_DEVICE=gpu`; `ONEAPI_DEVICE_SELECTOR` or
+`ZE_AFFINITY_MASK` restrict which GPUs it sees. Two helpers map the device-type string to `torch::kXPU` or
+`torch::kCUDA` and to the matching `is_available()` query; the CUDA/HIP/CPU paths and every message are
+unchanged. CMake sets `GMX_TORCH_XPU` (also in `config.h`) and warns when a SYCL build for Intel GPUs meets
+a LibTorch without XPU support. The GPU cases of the unit test also run on Intel devices. Docs: NNPot
+reference page, install guide, 2027 feature note. Nothing in `NNPotOptions`, `NNPotForceProvider`,
+`runner.cpp` or the notifier.
 
-Validated on an Arc Pro B70 (SYCL DPC++ 2026.1 build of `main` + this commit, LibTorch 2.14.1+xpu):
-`nnpot_applied_forces-test` 18/18 pass with the GPU case on the B70 (main has 18 tests; the 3 new tests live on the fix branch); a 512-atom Si pure-NNP case with
-MACE-MP-0 reproduces the ASE/MACE reference forces to 1.2e-05 relative on the GPU; with the GPU
-withheld from mdrun, `GMX_NN_DEVICE=gpu` fails with the new message and the automatic mode falls back
-to the CPU with a warning.
+**C++ standard per target (`0001-nnpot-torch-cxx-standard.patch`, 7 files).** LibTorch 2.14 and later
+require C++20 (`torch/all.h` moved its `#error`), GROMACS defaults to C++17. Three places include Torch:
+`torchmodel.cpp`, Colvars (`colvarcomp_torchann.h` via `colvar.cpp`, compiled into `colvars_library` with
+`COLVARS_TORCH`), and `binary_information.cpp`, which only needs `TORCH_VERSION` and now includes
+`<torch/version.h>`. Configure `try_compile`s `<torch/torch.h>` with the configured standard and, if that
+fails, with C++20 (compile-only, module scanning off in the test project, cached and invalidated with
+`gmx_check_if_changed`); `torchmodel.cpp` moves into an object library `nnpot_torch` with that standard
+(objects reach `libgromacs` through an interface target, the `colvars_module` pattern) and `colvars_library`
+gets the same standard; everything else keeps `CMAKE_CXX_STANDARD`. A compile check and not a version gate
+because `TorchConfig.cmake` declares the standard LibTorch was *built* with (`CXX_STANDARD 20` from 2.13 on)
+while 2.13 still compiles with C++17. `nnpot_torch` gets the CUDA include directory or `hip::host`
+explicitly. Opened as a separate MR because the problem is not Intel-specific and !6372 does not need it
+with LibTorch up to 2.13; folding it into !6372 is offered. Deviation stated to the reviewers: for Colvars
+the standard applies to the whole object library (two of fifty files include Torch, but the Torch flags
+already apply to all of them, and the whole library builds and passes its 16 tests at C++20 in every LibTorch 2.14 row; note
+the GROMACS C++20 CI jobs set `GMX_USE_COLVARS=NONE`, so they do not cover Colvars).
 
-Review pass 2026-10-16 (fresh-eyes review of the patches + host CPU-tier builds with GCC 12 + B70 re-run,
-`main` + this commit). Found and fixed, all now in the patch:
-- `GMX_NNPOT=OFF` stub constructor not updated (every no-torch build failed).
-- LibTorch header check also linked (fails with GCC; now compile-only via `CMAKE_TRY_COMPILE_TARGET_TYPE`)
-  and cached its failure so its own advice did not work (now `unset(... CACHE)` before the check).
-- Intel GPU unit-test case ran on SYCL builds with a non-XPU LibTorch and would have failed (gated on
-  `GMX_TORCH_XPU`).
-- DPC++ builds targeting NVIDIA/AMD got Intel/XPU wording and the CMake warning (vendor check at runtime,
-  `GMX_DPCPP_HAVE_INTEL_TARGET` in CMake). `<c10/xpu/XPUFunctions.h>` include guard matches its use site.
-- A process without an assigned GPU (grompp's model check, mdrun with all GPU work on the CPU) warned about
-  mdrun; it now uses the first XPU, as the CUDA/HIP paths use the current device. Verified on the B70:
-  grompp loads the model on the GPU, `mdrun -nb cpu ...` with `GMX_NN_DEVICE=gpu` gives rel 1.19e-05.
-- Device matching compares the Intel device UUID (`ext_intel_device_info_uuid`) before falling back to handle
-  identity, so a device GROMACS holds through OpenCL still matches LibTorch's Level Zero enumeration. The
-  unit tests pass with both backends visible (18/18) and with Level Zero only (18/18).
-- Docs (nnpot.rst) now state the two runtime requirements found the hard way: one SYCL runtime in the process
-  (GROMACS's oneAPI 2026.1 `libsycl.so.9` build 20260724 and the LibTorch wheel's bundled 2026.1.0.20260617
-  copy crash each other's side when mixed: oneAPI-first → null call in LibTorch's oneDNN graph-capture query;
-  LibTorch-first → crash in GROMACS's USM free at teardown when the OpenCL device was chosen), and a single
-  SYCL backend visible (`ONEAPI_DEVICE_SELECTOR=level_zero:gpu`, which GROMACS itself recommends when it sees a
-  GPU through two backends), plus `ZE_FLAT_DEVICE_HIERARCHY=FLAT` on multi-tile GPUs (identity/UUID match
-  cannot pair GROMACS sub-devices with LibTorch root devices; not testable on the single-tile B70 — say so in
-  the MR).
+**Verification 2026-10-27** (host GCC 12.2; container oneAPI 2026.1 icpx for the Arc Pro B70; every NNPot
+row 18/18, host rows also Colvars 16/16):
 
-After the fixes: B70 (SYCL build, LibTorch 2.14.1+xpu, LibTorch runtime first, Level Zero only): unit tests
-18/18; Si512 MACE-MP-0 forces vs ASE rel 1.19e-05 with mdrun on the GPU and again with all mdrun GPU work on
-the CPU; auto mode picks the XPU; with the GPU hidden from the process `GMX_NN_DEVICE=gpu` fails with the
-new message. Host: `GMX_GPU=OFF GMX_NNPOT=OFF` builds `gmx` and the full Sphinx manual (no warnings in
-touched files); `GMX_GPU=OFF GMX_NNPOT=TORCH` (CPU LibTorch) builds and passes 18/18; `GMX_GPU=CUDA
-GMX_NNPOT=TORCH` (LibTorch cu126) builds `gmx` and the test binary (CUDA tests cannot run: no NVIDIA driver on
-the current kernel; the `torch::hasCUDA()` assertion they hit is upstream code, identical on unpatched `main`).
+| build | result |
+|---|---|
+| C++ MR, host CPU, LibTorch 2.14.1 cpu, default std | probe no@17 yes@20; `nnpot_torch`+`colvars_library` C++20, `libgromacs`+`colvars_objlib` C++17; did not build before |
+| C++ MR, host CPU, LibTorch 2.13.0 | probe yes@17, everything C++17 |
+| C++ MR, host CPU, LibTorch 2.9.1 (CI version) | probe yes@17, everything C++17, 0 warnings |
+| C++ MR, host CPU, LibTorch 2.14.1, `-DCMAKE_CXX_STANDARD=20` | everything C++20 |
+| C++ MR, host CUDA 12.6, LibTorch 2.14.1 cu126, default std | builds; same split; CUDA include dir on `nnpot_torch`; tests need a driver (none on this kernel: upstream `torch::hasCUDA()` assert, identical on main) |
+| C++ MR, Ninja + icpx, LibTorch 2.14.1 xpu | configure OK, probe no@17 yes@20, `-std=c++20` on torchmodel.cpp |
+| XPU MR alone, host CUDA, LibTorch 2.14.1 cu126, C++20 | builds |
+| XPU MR alone, B70 SYCL, LibTorch 2.13.0 xpu, C++17 | 18/18 both runtime orders; Si512 MACE-MP-0 auto mode "Using XPU device", forces vs ASE rel 1.19e-05; `GMX_NN_DEVICE=gpu/cpu` OK; GPU hidden: `gpu` fails with "no matching device is available", auto falls back to CPU |
+| both MRs, B70 SYCL, LibTorch 2.14.1 xpu, default std | rerun after the review fixes: 18/18 both runtime orders, auto mode XPU, rel 1.19e-05, all modes; torchmodel.cpp and colvar.cpp at C++20, nnpotforceprovider.cpp at C++17 |
+| XPU MR, non-SYCL GROMACS (g++ 15) + LibTorch 2.13 xpu wheel | configure without a findable oneAPI compiler: aborts inside the wheel's `Caffe2Config.cmake` ("cannot find the XPU runtime libraries"), hence the install-guide wording; with oneAPI present: builds, 18/18 (no device list, GPU cases skipped), Si512 auto mode "Using XPU device", rel 1.19e-05, `gpu`/`cpu`/hidden-GPU modes correct |
+| SYCL Intel build + CPU-only LibTorch | new configure warning fires |
+| C++ MR, static libs, GCC 12, LibTorch 2.14.1 via `GMX_NNPOT=AUTO`, `-Werror=dev` (CP2K CI shape, 10-28) | builds `libgromacs.a` with the same split, 18/18 + 16/16; both branches configure clean with `-Werror=dev` |
 
-Verification round 2 (2026-10-16, after the review fixes):
-- Full GROMACS test suites, CPU builds with CPU LibTorch: fix branch 102/102, feature branch 104/104.
-- `admin/copyright.sh` check: clean on both branches (headers use the open-ended `YYYY-` form).
-- clang-tidy 18.1.8 (CI version) with the in-tree `src/.clang-tidy` on every touched translation unit: every
-  warning inside a touched file is on a pre-existing upstream line (git blame = main/release-2026 head); CI
-  only reports changed lines, so the gate is clean.
-- Rebase check: the fix applies on `main` and the feature cherry-picks on top of it with no conflicts.
-- Not possible on this box: CUDA tests (no NVIDIA driver on the 6.18 kernel), HIP and AdaptiveCpp builds.
+2026-10-28: Matthias Krack (CP2K) reported on #5754 that the CP2K CI (GCC 15, static, MPI, Spack PyTorch 2.14.1, `GMX_NNPOT=AUTO`) fails in the Colvars Torch header at C++17, the exact bug the C++ MR fixes; CP2K merged `-DGMX_NNPOT=OFF` as a workaround (cp2k/cp2k#6409). His diagnosis reads the torch target's `CXX_STANDARD 20` as the requirement; it is the build standard (2.13 has it too and compiles at C++17); the !6417 description explains this.
 
-Verification round 3 (2026-10-16, second cold review of the final patch): no functional defects; fixed in the
-patch: Signed-off-by dropped from both commits (not a GROMACS convention); a distinct error when LibTorch sees
-a CUDA/HIP device but the GROMACS build has no matching GPU support (the old assert's information, which the
-first version had lost); the LibTorch header check is cached keyed on LibTorch version + C++ standard +
-compiler instead of re-running on every configure (verified: 0 re-runs on reconfigure); nnpot.rst says the
-main rank is what matters; the XPU message names ZE_FLAT_DEVICE_HIERARCHY=FLAT; UUID query guarded by
-SYCL_EXT_INTEL_DEVICE_INFO >= 5 like the rest of the tree; a rank with no GPU and no XPU visible gets the
-neutral "no matching device" message; install guide no longer cites an unverified LibTorch XPU download.
-Re-validated after: B70 unit tests 18/18 (Level Zero only and both backends), Si512 rel 1.19e-05 with mdrun
-on the GPU and with mdrun GPU work on the CPU; host NNPot-off + Sphinx, CPU-torch 18/18, CUDA build OK.
+Reconfiguring a configured tree re-runs 0 header checks. Observed, not ours: a non-SYCL `GMX_FFT_LIBRARY=mkl`
+build with the XPU wheel fails in `gmxManageFFTLibraries.cmake` because LibTorch's CMake already created
+`MKL::MKL` (pre-existing interaction; fftpack/FFTW avoid it).
 
-Note for the feature MR: `main` carries the same `pairs-shifts` typo in lines the feature patch touches as
-context, so the feature branch needs a trivial rebase once the fix is merged up from release-2026.
+Independent review pass 2026-10-27 (fresh-eyes read of both patches against the reviewers' words, CI YAML and
+the LibTorch CMake configs) found and led to: the probe rewritten on `try_compile` with module scanning off
+(a Ninja + scanner-less clang would have failed the C++20 probe for the wrong reason); `CMakeConfigureLog.yaml`
+instead of the no-longer-written `CMakeError.log` in the error; `gmx_check_if_changed` instead of a hand-rolled
+cache key (now also keyed on `Torch_DIR` and `CMAKE_CXX_FLAGS`); explicit CUDA/HIP runtime headers on
+`nnpot_torch`; the install guide now says the XPU wheel's CMake needs a oneAPI DPC++ compiler at configure
+time even for a non-SYCL GROMACS. Accepted as-is: `torch::xpu::is_available()` runs before `GMX_NN_DEVICE`
+is read (parity with `cudaGetDevice`); `GMX_NN_DEVICE=cuda` as deprecated alias also selects the XPU; no
+warning for AdaptiveCpp builds targeting Intel GPUs.
+
+Not testable here: HIP/ROCm LibTorch, AdaptiveCpp, MSVC (moot: `torchmodel.cpp` includes `<dlfcn.h>`),
+multi-GPU Intel nodes.
+
+### v1 (`0001-nnpot-intel-gpu-xpu.patch`, pushed 2026-10-17, superseded)
+
+Passed the rank's `DeviceInformation` to the module through a new notification and matched the rank's
+`sycl::device` against LibTorch's XPU enumeration (UUID, then handle identity). Validated on the B70 and on
+host CPU/CUDA builds, three review rounds (details in the git history of this file). Its device matching
+and the single-runtime / single-backend findings are what the v2 docs still describe; the notification itself
+becomes a preparatory MR for #5467 when the maintainers want it.
 
 ## Rebuilding the branches
 
 ```
 git clone https://gitlab.com/gromacs/gromacs.git && cd gromacs
 git checkout -b nnpot-pair-shifts-fix release-2026 && git am ../0001-nnpot-pair-shifts-fix.patch
-git checkout -b nnpot-xpu main && git am ../0001-nnpot-intel-gpu-xpu.patch
+git checkout -b nnpot-xpu main && git am ../0001-nnpot-intel-gpu-xpu-v2.patch
+git checkout -b nnpot-torch-cxx-standard main && git am ../0001-nnpot-torch-cxx-standard.patch
 ```
-Or take the branches `nnpot-pair-shifts-fix` and `nnpot-xpu` from `gitlab.com/DylanHoldren/gromacs`.
+Or take the branches `nnpot-pair-shifts-fix`, `nnpot-xpu` and `nnpot-torch-cxx-standard` from
+`gitlab.com/DylanHoldren/gromacs`.

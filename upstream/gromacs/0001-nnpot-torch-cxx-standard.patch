@@ -1,0 +1,256 @@
+From e7893295b7995cf496a6c0fa7a7d7e3cb2b85f36 Mon Sep 17 00:00:00 2001
+From: Dylan Holdren <Dylan@UniversalBasicInc.com>
+Date: Tue, 27 Oct 2026 14:24:15 -0400
+Subject: [PATCH] Build the sources that include LibTorch with the C++ standard
+ it needs
+
+The LibTorch headers of PyTorch 2.14 and later require C++20, while
+GROMACS builds with C++17 by default. The build then failed inside the
+LibTorch headers, and the only way out was to build all of GROMACS with
+C++20.
+
+Configuring now checks whether the LibTorch headers compile with the
+configured standard and, if not, with C++20. torchmodel.cpp, the only
+libgromacs source that includes LibTorch, moves to an object library of
+its own, and that library and the Colvars library (which includes
+LibTorch when it is available) are built with the standard that works,
+while the rest of GROMACS keeps the configured one. LibTorch headers
+that compile with neither standard are reported when configuring, with
+the LibTorch version and the compiler, instead of failing in the build.
+
+Refs #5754
+---
+ cmake/gmxManageNNPot.cmake                    | 62 +++++++++++++++++++
+ docs/install-guide/index.rst                  |  3 +
+ docs/release-notes/2027/major/portability.rst | 13 ++++
+ src/gromacs/CMakeLists.txt                    |  1 +
+ .../applied_forces/colvars/CMakeLists.txt     |  5 ++
+ .../applied_forces/nnpot/CMakeLists.txt       | 45 +++++++++++++-
+ .../nnpot/binary_information.cpp              |  4 +-
+ 7 files changed, 130 insertions(+), 3 deletions(-)
+
+diff --git a/cmake/gmxManageNNPot.cmake b/cmake/gmxManageNNPot.cmake
+index 2302180..aca947e 100644
+--- a/cmake/gmxManageNNPot.cmake
++++ b/cmake/gmxManageNNPot.cmake
+@@ -43,6 +43,31 @@ if(TORCH_ALREADY_SEARCHED)
+ endif()
+ 
+ set(GMX_TORCH OFF)
++# Checks whether the LibTorch headers compile with the given C++ standard and caches
++# the result in RESULT_VAR. Compile only: the check must not depend on linking LibTorch.
++# Module scanning is disabled in the test project, as the top-level CMakeLists.txt does
++# for C++20 builds of GROMACS, so that a missing dependency scanner cannot fail the check.
++function(gmx_check_torch_headers_compile STANDARD RESULT_VAR)
++    if(DEFINED ${RESULT_VAR})
++        return()
++    endif()
++    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
++    try_compile(${RESULT_VAR}
++                SOURCE_FROM_CONTENT torch_headers.cpp "#include <torch/torch.h>\nint main() { return 0; }\n"
++                CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${TORCH_INCLUDE_DIRS}" "-DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
++                COMPILE_DEFINITIONS ${TORCH_CXX_FLAGS}
++                CXX_STANDARD ${STANDARD} CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF
++                LOG_DESCRIPTION "LibTorch ${Torch_VERSION} headers with C++${STANDARD}")
++    if(${RESULT_VAR})
++        set(_result yes)
++    else()
++        set(_result no)
++    endif()
++    if(NOT FIND_TORCH_QUIETLY)
++        message(STATUS "Checking whether the LibTorch ${Torch_VERSION} headers compile with C++${STANDARD} - ${_result}")
++    endif()
++endfunction()
++
+ if(NOT GMX_NNPOT STREQUAL "OFF")
+     if(GMX_GPU_CUDA AND NOT TORCH_CUDA_ARCH_LIST)
+         set(TORCH_CUDA_ARCH_LIST)
+@@ -82,6 +107,43 @@ if(NOT GMX_NNPOT STREQUAL "OFF")
+                                 "compiled with the cxx11 ABI, which is required for building GROMACS.")
+         endif()
+ 
++        # The LibTorch headers can require a newer C++ standard than the rest of GROMACS:
++        # PyTorch 2.14 and later need C++20. (TorchConfig.cmake declares the standard LibTorch
++        # was built with, which is not the same thing: 2.13 declares C++20 but its headers
++        # compile with C++17.) Check whether they compile with the configured standard and, if
++        # not, with C++20. The targets that include LibTorch are built with the standard that
++        # works (GMX_TORCH_CXX_STANDARD), the rest of GROMACS keeps the configured one. The
++        # results stay cached until the LibTorch, the standard, the compiler or its flags change.
++        gmx_check_if_changed(_torch_header_check_changed Torch_DIR Torch_VERSION CMAKE_CXX_STANDARD
++                             CMAKE_CXX_COMPILER CMAKE_CXX_COMPILER_VERSION CMAKE_CXX_FLAGS)
++        if(_torch_header_check_changed)
++            unset(GMX_TORCH_HEADERS_COMPILE_WITH_CXX_STANDARD CACHE)
++            unset(GMX_TORCH_HEADERS_COMPILE_WITH_CXX20 CACHE)
++        endif()
++        unset(_torch_header_check_changed)
++        gmx_check_torch_headers_compile(${CMAKE_CXX_STANDARD} GMX_TORCH_HEADERS_COMPILE_WITH_CXX_STANDARD)
++        set(GMX_TORCH_CXX_STANDARD ${CMAKE_CXX_STANDARD})
++        if(NOT GMX_TORCH_HEADERS_COMPILE_WITH_CXX_STANDARD)
++            set(_torch_standards_tried "C++${CMAKE_CXX_STANDARD}")
++            if(CMAKE_CXX_STANDARD LESS 20)
++                gmx_check_torch_headers_compile(20 GMX_TORCH_HEADERS_COMPILE_WITH_CXX20)
++                set(_torch_standards_tried "C++${CMAKE_CXX_STANDARD} or C++20")
++            endif()
++            if(GMX_TORCH_HEADERS_COMPILE_WITH_CXX20)
++                set(GMX_TORCH_CXX_STANDARD 20)
++                if(NOT FIND_TORCH_QUIETLY)
++                    message(STATUS "LibTorch ${Torch_VERSION} requires C++20: the sources that include "
++                                   "LibTorch are built with C++20, the rest of GROMACS with C++${CMAKE_CXX_STANDARD}.")
++                endif()
++            else()
++                message(FATAL_ERROR "The LibTorch ${Torch_VERSION} headers do not compile with ${_torch_standards_tried} "
++                                    "using ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} "
++                                    "(see CMakeFiles/CMakeConfigureLog.yaml). Use a different LibTorch or compiler, "
++                                    "or disable the interface with -DGMX_NNPOT=OFF.")
++            endif()
++            unset(_torch_standards_tried)
++        endif()
++
+         set(GMX_TORCH ON)
+     elseif(GMX_NNPOT STREQUAL "TORCH")
+         message(FATAL_ERROR "Torch not found. Please install libtorch and add its installation prefix"
+diff --git a/docs/install-guide/index.rst b/docs/install-guide/index.rst
+index 775b0da..b1aaced 100644
+--- a/docs/install-guide/index.rst
++++ b/docs/install-guide/index.rst
+@@ -1466,6 +1466,9 @@ You must use the same ABI version as you use when building the rest of
+ So get (or build) the CXX11 ABI version of Libtorch.
+ For the same reason, it is also not possible to use the Libtorch version that ships
+ with a conda installation of Pytorch, because it is built with the pre-CXX11 ABI by default.
++Libtorch 2.14 and later require C++20. Configuring detects this and then compiles only
++the sources that include the Libtorch headers with C++20, while the rest of |Gromacs|
++keeps the configured standard (C++17 by default), so no extra option is needed.
+ The NNP interface is enabled by default when a Libtorch installation is found in the
+ ``CMAKE_PREFIX_PATH``, or ``Torch_DIR`` is set to a ``TorchConfig.cmake`` or
+ ``torch-config.cmake`` usually found under ``share/cmake/Torch/`` in the libtorch
+diff --git a/docs/release-notes/2027/major/portability.rst b/docs/release-notes/2027/major/portability.rst
+index 8ff9b5b..30574f1 100644
+--- a/docs/release-notes/2027/major/portability.rst
++++ b/docs/release-notes/2027/major/portability.rst
+@@ -14,3 +14,16 @@ The Apple OpenCL compiler fails to produce a functional clFFT build, so
+ configuring an OpenCL build with ``-DGMX_GPU_FFT_LIBRARY=clFFT`` on macOS
+ is now rejected by CMake, rather than leaving PME on the GPU unavailable
+ at run time. VkFFT, which is the default on macOS, should be used instead.
++
++Libtorch versions that require C++20 work with the default C++17 build
++""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
++
++The Libtorch headers from PyTorch 2.14 onwards require C++20, which used to
++stop the build unless all of |Gromacs| was configured with
++``-DCMAKE_CXX_STANDARD=20``. Configuring now detects which C++ standard the
++Libtorch headers need and compiles only the sources that include them (the
++NNPot interface and Colvars) with that standard; the rest of |Gromacs| keeps
++the configured one. Libtorch headers that compile with neither standard are
++reported when configuring instead of failing in the build.
++
++:issue:`5754`
+diff --git a/src/gromacs/CMakeLists.txt b/src/gromacs/CMakeLists.txt
+index d4d65de..4f171c8 100644
+--- a/src/gromacs/CMakeLists.txt
++++ b/src/gromacs/CMakeLists.txt
+@@ -428,6 +428,7 @@ target_link_libraries(libgromacs PRIVATE
+                       $<BUILD_INTERFACE:analysisdata>
+                       $<BUILD_INTERFACE:applied_forces>
+                       $<BUILD_INTERFACE:colvars_module>
++                      $<BUILD_INTERFACE:nnpot_torch_module>
+                       $<BUILD_INTERFACE:commandline>
+                       $<BUILD_INTERFACE:compat>
+                       $<BUILD_INTERFACE:coordinateio>
+diff --git a/src/gromacs/applied_forces/colvars/CMakeLists.txt b/src/gromacs/applied_forces/colvars/CMakeLists.txt
+index 7d30b36..db2ba94 100644
+--- a/src/gromacs/applied_forces/colvars/CMakeLists.txt
++++ b/src/gromacs/applied_forces/colvars/CMakeLists.txt
+@@ -64,6 +64,11 @@ if (GMX_HAVE_COLVARS AND GMX_USE_COLVARS STREQUAL "INTERNAL")
+         target_compile_options(colvars_library PUBLIC ${TORCH_CXX_FLAGS})
+         target_include_directories(colvars_library PUBLIC ${TORCH_INCLUDE_DIRS})
+         target_compile_definitions(colvars_library PUBLIC -DCOLVARS_TORCH)
++        # The Colvars sources include the LibTorch headers, which can require a newer
++        # C++ standard than GROMACS uses (see cmake/gmxManageNNPot.cmake)
++        set_target_properties(colvars_library PROPERTIES
++                              CXX_STANDARD ${GMX_TORCH_CXX_STANDARD}
++                              CXX_SCAN_FOR_MODULES OFF)
+     endif()
+ 
+     # Set correctly the value of __cplusplus, which MSVC doesn't do by default
+diff --git a/src/gromacs/applied_forces/nnpot/CMakeLists.txt b/src/gromacs/applied_forces/nnpot/CMakeLists.txt
+index e2160f7..50d60f4 100644
+--- a/src/gromacs/applied_forces/nnpot/CMakeLists.txt
++++ b/src/gromacs/applied_forces/nnpot/CMakeLists.txt
+@@ -33,6 +33,9 @@
+ 
+ include(CheckLinkerFlag)
+ 
++# Interface target that passes the objects of nnpot_torch on to libgromacs when LibTorch is used
++add_library(nnpot_torch_module INTERFACE)
++
+ gmx_add_libgromacs_sources(
+     binary_information.cpp
+     nnpotoptions.cpp
+@@ -42,9 +45,47 @@ gmx_add_libgromacs_sources(
+ if (GMX_TORCH)
+     gmx_add_libgromacs_sources(
+         nnpotforceprovider.cpp
+-        torchmodel.cpp
+     )
+-    
++    # torchmodel.cpp is the only libgromacs source that includes the LibTorch headers, which
++    # can require a newer C++ standard than GROMACS uses (GMX_TORCH_CXX_STANDARD, see
++    # cmake/gmxManageNNPot.cmake). It is built in an object library of its own so that only
++    # this file is compiled with that standard.
++    add_library(nnpot_torch OBJECT torchmodel.cpp)
++    if (BUILD_SHARED_LIBS)
++        set_target_properties(nnpot_torch PROPERTIES POSITION_INDEPENDENT_CODE ON)
++    endif()
++    set_target_properties(nnpot_torch PROPERTIES
++                          CXX_STANDARD ${GMX_TORCH_CXX_STANDARD}
++                          CXX_SCAN_FOR_MODULES OFF)
++    gmx_target_compile_options(nnpot_torch)
++    target_compile_definitions(nnpot_torch PRIVATE HAVE_CONFIG_H)
++    target_link_libraries(nnpot_torch PRIVATE
++                          common
++                          legacy_api
++                          legacy_modules
++                          hardware
++                          math
++                          mdtypes
++                          pbcutil
++                          topology
++                          utility
++                          ${TORCH_LIBRARIES})
++    # torchmodel.cpp asks the GPU runtime for the active device and includes GROMACS headers
++    # that need the GPU runtime headers. libgromacs gets those from its own GPU dependencies;
++    # this target needs them explicitly, as the other separate targets do.
++    if (GMX_GPU_CUDA)
++        target_link_libraries(nnpot_torch PRIVATE CUDA::toolkit)
++    elseif (GMX_GPU_HIP)
++        target_link_libraries(nnpot_torch PRIVATE hip::host)
++    elseif (GMX_GPU_SYCL)
++        add_sycl_to_target(TARGET nnpot_torch)
++    endif()
++    # The objects reach libgromacs through this interface target, as for Colvars
++    # (see src/gromacs/CMakeLists.txt)
++    target_link_libraries(nnpot_torch_module INTERFACE
++                          $<BUILD_INTERFACE:nnpot_torch>
++                          $<TARGET_OBJECTS:nnpot_torch>)
++
+     # find torch and python to explicitly link against: required for some torch extensions
+     find_package(Python REQUIRED COMPONENTS Development)
+ 
+diff --git a/src/gromacs/applied_forces/nnpot/binary_information.cpp b/src/gromacs/applied_forces/nnpot/binary_information.cpp
+index 5ee75b6..84acac3 100644
+--- a/src/gromacs/applied_forces/nnpot/binary_information.cpp
++++ b/src/gromacs/applied_forces/nnpot/binary_information.cpp
+@@ -46,7 +46,9 @@
+ #include "gromacs/utility/stringutil.h"
+ 
+ #if GMX_TORCH
+-#    include <torch/torch.h>
++// Only the version macros are needed; <torch/torch.h> would also tie this file to the C++
++// standard LibTorch requires (see cmake/gmxManageNNPot.cmake)
++#    include <torch/version.h>
+ #endif
+ 
+ namespace gmx
+-- 
+2.39.5
+

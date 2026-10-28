@@ -1,0 +1,272 @@
+From 19b01e3f02670d9f3d10f057f30908ca90f64691 Mon Sep 17 00:00:00 2001
+From: Dylan Holdren <Dylan@UniversalBasicInc.com>
+Date: Tue, 27 Oct 2026 14:24:15 -0400
+Subject: [PATCH] Run neural network potentials on Intel GPUs through LibTorch
+ XPU
+
+The NNPot interface asked only the CUDA or HIP runtime for a device, so
+with a LibTorch built for Intel GPUs the model always ran on the CPU.
+When the LibTorch found at configure time has XPU support (it exports
+the torch_xpu target), TorchModel now runs the model on the first Intel
+GPU LibTorch enumerates, both by default and with GMX_NN_DEVICE=gpu;
+which GPUs LibTorch sees can be restricted with ONEAPI_DEVICE_SELECTOR
+or ZE_AFFINITY_MASK. SYCL has no process-wide current device, so unlike
+the CUDA and HIP paths the device is not inherited from mdrun; passing
+the device of the rank to the module is left to a follow-up (#5467).
+
+CMake warns when a SYCL build for Intel GPUs is paired with a LibTorch
+without XPU support. The NNPot unit tests also run the GPU cases on
+Intel devices.
+
+Refs #5754
+---
+ cmake/gmxManageNNPot.cmake                    | 11 +++++
+ docs/install-guide/index.rst                  |  7 +++
+ docs/reference-manual/special/nnpot.rst       | 10 +++++
+ docs/release-notes/2027/major/features.rst    | 11 +++++
+ src/config.h.cmakein                          |  3 ++
+ .../nnpot/tests/nnpotforceprovider.cpp        | 16 ++++---
+ .../applied_forces/nnpot/torchmodel.cpp       | 43 +++++++++++++++++--
+ 7 files changed, 91 insertions(+), 10 deletions(-)
+
+diff --git a/cmake/gmxManageNNPot.cmake b/cmake/gmxManageNNPot.cmake
+index 2302180..4bcb504 100644
+--- a/cmake/gmxManageNNPot.cmake
++++ b/cmake/gmxManageNNPot.cmake
+@@ -82,6 +82,17 @@ if(NOT GMX_NNPOT STREQUAL "OFF")
+                                 "compiled with the cxx11 ABI, which is required for building GROMACS.")
+         endif()
+ 
++        # A LibTorch built with XPU support (Intel GPUs, PyTorch >= 2.5) exports the torch_xpu target
++        set(GMX_TORCH_XPU OFF)
++        if(TARGET torch_xpu)
++            set(GMX_TORCH_XPU ON)
++        endif()
++        if(GMX_GPU_SYCL AND GMX_SYCL_DPCPP AND GMX_DPCPP_HAVE_INTEL_TARGET AND NOT GMX_TORCH_XPU AND NOT FIND_TORCH_QUIETLY)
++            message(WARNING "GROMACS is built for Intel GPUs with SYCL, but the LibTorch found has no XPU "
++                            "support, so neural network potential inference will run on the CPU. Use a "
++                            "LibTorch with XPU support (PyTorch >= 2.5) to run the model on the GPU.")
++        endif()
++
+         set(GMX_TORCH ON)
+     elseif(GMX_NNPOT STREQUAL "TORCH")
+         message(FATAL_ERROR "Torch not found. Please install libtorch and add its installation prefix"
+diff --git a/docs/install-guide/index.rst b/docs/install-guide/index.rst
+index 775b0da..2a3bee3 100644
+--- a/docs/install-guide/index.rst
++++ b/docs/install-guide/index.rst
+@@ -1466,6 +1466,13 @@ You must use the same ABI version as you use when building the rest of
+ So get (or build) the CXX11 ABI version of Libtorch.
+ For the same reason, it is also not possible to use the Libtorch version that ships
+ with a conda installation of Pytorch, because it is built with the pre-CXX11 ABI by default.
++To run model inference on Intel GPUs, use a Libtorch with XPU support (PyTorch 2.5 or
++later, for example the one bundled in the ``torch`` XPU wheel). |Gromacs| itself can be
++built with or without SYCL, but the CMake configuration of such a Libtorch requires an
++Intel oneAPI DPC++ compiler installation at configure time (found through ``SYCL_ROOT``
++or ``CMPLR_ROOT``, which sourcing ``setvars.sh`` sets, or at
++``/opt/intel/oneapi/compiler/latest``), and the oneAPI runtime libraries that Libtorch
++links against must be on the library path at run time.
+ The NNP interface is enabled by default when a Libtorch installation is found in the
+ ``CMAKE_PREFIX_PATH``, or ``Torch_DIR`` is set to a ``TorchConfig.cmake`` or
+ ``torch-config.cmake`` usually found under ``share/cmake/Torch/`` in the libtorch
+diff --git a/docs/reference-manual/special/nnpot.rst b/docs/reference-manual/special/nnpot.rst
+index e5b7ea9..a119518 100644
+--- a/docs/reference-manual/special/nnpot.rst
++++ b/docs/reference-manual/special/nnpot.rst
+@@ -68,6 +68,16 @@ is deprecated, and is treated as ``gpu``.
+ If multiple GPUs are available, the active device will be inherited from mdrun.
+ For ``gpu``, a CUDA/HIP-aware LibTorch installation should be installed, and the
+ corresponding CUDA/HIP installation should be available in your ``PATH``.
++On Intel GPUs, a LibTorch with XPU support (PyTorch 2.5 or later) is needed. Unlike
++for CUDA and HIP, the device is not inherited from mdrun: the model runs on the first
++Intel GPU LibTorch enumerates, which can be restricted with ``ONEAPI_DEVICE_SELECTOR``
++or ``ZE_AFFINITY_MASK``. When |Gromacs| itself is built with SYCL, two things apply at
++run time. First, |Gromacs| and LibTorch must use one and the same SYCL runtime
++(``libsycl``): build |Gromacs| with the oneAPI release whose runtime the LibTorch
++package bundles, or make sure the runtime bundled with LibTorch is the one loaded;
++with two different runtimes in the process either side can crash. Second, expose a
++single SYCL backend, e.g. ``ONEAPI_DEVICE_SELECTOR=level_zero:gpu``, as |Gromacs|
++itself recommends when it detects a GPU through more than one backend.
+ 
+ Find below an example Python code snippet to export a pretrained model in
+ PyTorch using TorchScript. As an example, we use the popular ANI models
+diff --git a/docs/release-notes/2027/major/features.rst b/docs/release-notes/2027/major/features.rst
+index 3aba5b9..d62ceab 100644
+--- a/docs/release-notes/2027/major/features.rst
++++ b/docs/release-notes/2027/major/features.rst
+@@ -46,3 +46,14 @@ header line. When the A and B state CMAP types differ, the
+ interaction is treated as perturbed; when they are identical (or
+ no B-state is specified) the standard non-perturbed code path is
+ used.
++
++Neural network potentials can run on Intel GPUs
++"""""""""""""""""""""""""""""""""""""""""""""""
++
++The NNPot interface now runs model inference on Intel GPUs when a LibTorch
++with XPU support (PyTorch 2.5 or later) is used. The model runs on the first
++Intel GPU LibTorch enumerates, by default and with ``GMX_NN_DEVICE=gpu``.
++Configuring warns when a SYCL build for Intel GPUs is paired with a LibTorch
++without XPU support.
++
++:issue:`5754`
+diff --git a/src/config.h.cmakein b/src/config.h.cmakein
+index fa1a484..9ee4b4f 100644
+--- a/src/config.h.cmakein
++++ b/src/config.h.cmakein
+@@ -470,6 +470,9 @@
+ /* Define if we are building with Torch */
+ #cmakedefine01 GMX_TORCH
+ 
++/* Define if LibTorch has XPU (Intel GPU) support */
++#cmakedefine01 GMX_TORCH_XPU
++
+ /* Define if we are building with an external FMM implementation */
+ #cmakedefine01 GMX_USE_EXT_FMM
+ 
+diff --git a/src/gromacs/applied_forces/nnpot/tests/nnpotforceprovider.cpp b/src/gromacs/applied_forces/nnpot/tests/nnpotforceprovider.cpp
+index 2978995..945c62c 100644
+--- a/src/gromacs/applied_forces/nnpot/tests/nnpotforceprovider.cpp
++++ b/src/gromacs/applied_forces/nnpot/tests/nnpotforceprovider.cpp
+@@ -42,6 +42,8 @@
+ 
+ #include "gromacs/applied_forces/nnpot/nnpotforceprovider.h"
+ 
++#include "config.h"
++
+ #include <gtest/gtest.h>
+ 
+ #include "gromacs/applied_forces/nnpot/nnpotoptions.h"
+@@ -197,10 +199,11 @@ TEST_F(NNPotForceProviderTest, CanConstruct)
+         for (const auto& device : getTestHardwareEnvironment()->getTestDeviceList())
+         {
+             const DeviceInformation deviceInfo = device->deviceInfo();
+-            if (deviceInfo.deviceVendor == DeviceVendor::Nvidia)
++            if (deviceInfo.deviceVendor == DeviceVendor::Nvidia
++                || (GMX_TORCH_XPU && deviceInfo.deviceVendor == DeviceVendor::Intel))
+             {
+-                SCOPED_TRACE("Check construction on default NVIDIA GPU");
+-                auto envGuard = GmxEnvGuard("GMX_NN_DEVICE", "cuda");
++                SCOPED_TRACE("Check construction on default GPU");
++                auto envGuard = GmxEnvGuard("GMX_NN_DEVICE", "gpu");
+                 EXPECT_NO_THROW(NNPotForceProvider nnpotForceProvider(params_, logger_, mpiComm_));
+                 break; // Only test one GPU until we have a better way to hande device selection
+             }
+@@ -235,10 +238,11 @@ TEST_F(NNPotForceProviderTest, CanCalculateForces)
+     for (const auto& device : getTestHardwareEnvironment()->getTestDeviceList())
+     {
+         const DeviceInformation deviceInfo = device->deviceInfo();
+-        if (deviceInfo.deviceVendor == DeviceVendor::Nvidia)
++        if (deviceInfo.deviceVendor == DeviceVendor::Nvidia
++            || (GMX_TORCH_XPU && deviceInfo.deviceVendor == DeviceVendor::Intel))
+         {
+-            SCOPED_TRACE("Check calculate forces on default NVIDIA GPU");
+-            auto envGuard = GmxEnvGuard("GMX_NN_DEVICE", "cuda");
++            SCOPED_TRACE("Check calculate forces on default GPU");
++            auto envGuard = GmxEnvGuard("GMX_NN_DEVICE", "gpu");
+             testCalculateForces(data);
+             break; // Only test one GPU until we have a better way to hande device selection
+         }
+diff --git a/src/gromacs/applied_forces/nnpot/torchmodel.cpp b/src/gromacs/applied_forces/nnpot/torchmodel.cpp
+index 079a7da..25081c8 100644
+--- a/src/gromacs/applied_forces/nnpot/torchmodel.cpp
++++ b/src/gromacs/applied_forces/nnpot/torchmodel.cpp
+@@ -41,6 +41,8 @@
+ 
+ #include "torchmodel.h"
+ 
++#include "config.h"
++
+ #include <dlfcn.h>
+ 
+ #include <iostream>
+@@ -56,6 +58,9 @@
+ #include <torch/cuda.h>
+ #include <torch/script.h>
+ #include <torch/torch.h>
++#if GMX_TORCH_XPU
++#    include <torch/xpu.h>
++#endif
+ 
+ #ifdef GMX_RESTORE_DIM_MACRO
+ #    define DIM 3
+@@ -153,11 +158,41 @@ static std::tuple<std::string, std::optional<int>> getMdrunActiveDevice()
+         GMX_THROW(InternalError("Could not get active device: hipGetDevice failed."));
+     }
+     return { "hip", activeDevice };
++#elif GMX_TORCH_XPU
++    // Intel GPUs through the XPU backend of LibTorch. SYCL has no process-wide current device
++    // that could be inherited from mdrun, so the model runs on the first XPU LibTorch
++    // enumerates; ONEAPI_DEVICE_SELECTOR or ZE_AFFINITY_MASK restrict which GPUs it sees.
++    if (torch::xpu::is_available())
++    {
++        return { "xpu", 0 };
++    }
++    return { "xpu", std::nullopt };
+ #else
+     return { "cpu", std::nullopt };
+ #endif
+ }
+ 
++//! \brief \internal Torch device type for a device type string returned by getMdrunActiveDevice()
++static torch::DeviceType torchDeviceTypeFor(const std::string& deviceType)
++{
++    // LibTorch addresses HIP devices through its CUDA API
++    return deviceType == "xpu" ? torch::kXPU : torch::kCUDA;
++}
++
++//! \brief \internal Whether LibTorch can use a GPU of the type returned by getMdrunActiveDevice()
++static bool torchGpuIsAvailable(const std::string& deviceType)
++{
++    if (deviceType == "xpu")
++    {
++#if GMX_TORCH_XPU
++        return torch::xpu::is_available();
++#else
++        return false;
++#endif
++    }
++    return torch::cuda::is_available();
++}
++
+ /*! \brief Determine which device to use depending on GMX_NN_DEVICE environment variable
+  *
+  * Should be "gpu" or "cpu". "cuda" option is deprecated. Defaults to GPU if no environment variable is set.
+@@ -183,7 +218,7 @@ static torch::Device determineDevice(const MDLogger& logger, const MpiComm& mpiC
+         const std::string devLC = toLowerCase(env);
+         if (devLC == "gpu" || devLC == "cuda")
+         {
+-            if (!torch::cuda::is_available())
++            if (!torchGpuIsAvailable(torchDeviceType))
+             {
+                 GMX_THROW(InternalError(formatString(
+                         "GMX_NN_DEVICE was set to '%s', but no matching device is available.", env)));
+@@ -192,7 +227,7 @@ static torch::Device determineDevice(const MDLogger& logger, const MpiComm& mpiC
+                     activeDevice.has_value(),
+                     "Active device couldn't be determined. Ensure that Libtorch and GROMACS "
+                     "are compiled with matching GPU support.");
+-            device = torch::Device(torch::kCUDA, activeDevice.value());
++            device = torch::Device(torchDeviceTypeFor(torchDeviceType), activeDevice.value());
+         }
+         else if (devLC != "cpu")
+         {
+@@ -206,7 +241,7 @@ static torch::Device determineDevice(const MDLogger& logger, const MpiComm& mpiC
+     }
+     else // not set: automatically determine device
+     {
+-        if (torch::cuda::is_available() && activeDevice.has_value())
++        if (torchGpuIsAvailable(torchDeviceType) && activeDevice.has_value())
+         {
+             GMX_LOG(logger.info)
+                     .asParagraph()
+@@ -214,7 +249,7 @@ static torch::Device determineDevice(const MDLogger& logger, const MpiComm& mpiC
+                             "GMX_NN_DEVICE environment variable not found."
+                             " Using "
+                             + toUpperCase(torchDeviceType) + " device.");
+-            device = torch::Device(torch::kCUDA, activeDevice.value());
++            device = torch::Device(torchDeviceTypeFor(torchDeviceType), activeDevice.value());
+         }
+         else
+         {
+-- 
+2.39.5
+
