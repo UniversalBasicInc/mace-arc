@@ -2,12 +2,12 @@
 
 Run [MACE](https://github.com/ACEsuit/mace) machine-learned interatomic potentials on Intel Arc GPUs,
 with the numbers to trust it: forces validated against the CPU reference and against an NVIDIA RTX A5000
-in the same machine, molecular-dynamics stability checked, and GROMACS 2026 driving the model on the Arc
+in the same machine, molecular-dynamics stability checked, and GROMACS driving the model on the Arc
 through its NNPot interface.
 
 **MACE itself needs no change.** PyTorch's `xpu` backend is enough. What this repository adds is the
-recipe, the validation record, and the GROMACS side: three contributions upstream (one merged, two in review), and a patch
-for the 2026.3 release for people who want to build today.
+recipe, the validation record, and the GROMACS side: three contributions merged upstream, and a
+one-command container that runs GROMACS `main` with MACE on an Intel GPU.
 
 ![64 water molecules simulated with MACE-MP-0 on an Intel Arc Pro B70](docs/img/water64_300K.gif)
 
@@ -61,23 +61,41 @@ tensor-product path for XPU is where the next 2× on Arc is.
 
 ## GROMACS
 
-GROMACS 2026's NNPot interface runs a LibTorch model inside mdrun, but it only knew CUDA and HIP devices.
-Two changes are submitted to GROMACS upstream:
+GROMACS's NNPot interface runs a LibTorch model inside mdrun. Intel GPU support for it is now upstream in
+GROMACS `main` and will ship in the next major release; no patch is needed:
 
-| change | issue | merge request | branch |
+| change | issue | merge request | status |
 |---|---|---|---|
-| Run NNPot models on Intel GPUs through LibTorch XPU | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6372](https://gitlab.com/gromacs/gromacs/-/merge_requests/6372) (Draft) | `main` |
-| Fix: models requesting only `pair-shifts` never got a pair list | [#5753](https://gitlab.com/gromacs/gromacs/-/issues/5753) | [!6370](https://gitlab.com/gromacs/gromacs/-/merge_requests/6370) | `release-2026` |
+| Run NNPot models on Intel GPUs through LibTorch XPU | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6372](https://gitlab.com/gromacs/gromacs/-/merge_requests/6372) | merged into `main` |
+| Build with LibTorch 2.14+ (C++20 only for the sources that include LibTorch) | [#5754](https://gitlab.com/gromacs/gromacs/-/issues/5754) | [!6417](https://gitlab.com/gromacs/gromacs/-/merge_requests/6417) | merged into `main` |
+| Fix: models requesting only `pair-shifts` never got a pair list | [#5753](https://gitlab.com/gromacs/gromacs/-/issues/5753) | [!6370](https://gitlab.com/gromacs/gromacs/-/merge_requests/6370) | merged into `release-2026` |
 
-To build before they merge: the patches in [`upstream/gromacs/`](upstream/gromacs/) apply to the
-`main` and `release-2026` branches (the verification record is in the same directory), and
-[`patches/gromacs-2026.3-nnpot-xpu.patch`](patches/gromacs-2026.3-nnpot-xpu.patch) is the earlier
-combined form for the 2026.3 release tarball. Build scripts: `scripts/gmx/build-gmx-nnpot-{xpu,cuda}.sh`.
+### One command: GROMACS + MACE on an Intel GPU
 
-Runtime rules learned the hard way, now in the upstream docs: PyTorch 2.14 headers need C++20; GROMACS and
-LibTorch must share one SYCL runtime (`libsycl`), so put the LibTorch wheel's `lib/` first on
-`LD_LIBRARY_PATH` or build GROMACS with the oneAPI release that LibTorch bundles; expose a single SYCL backend
-(`ONEAPI_DEVICE_SELECTOR=level_zero:gpu`); the mdp key is `nnpot-pair-cutoff`.
+```bash
+pipeline/run.sh            # podman; ENGINE=docker pipeline/run.sh for docker
+```
+
+[`pipeline/Containerfile`](pipeline/Containerfile) builds everything from public sources: Ubuntu 26.04, Intel's GPU
+compute runtime, the oneAPI DPC++ compiler, the PyTorch XPU wheel, mace-torch, and unpatched GROMACS `main`.
+[`pipeline/run.sh`](pipeline/run.sh) then exports MACE-MP-0 for GROMACS, builds a 512-atom silicon test system,
+runs a single-point force check and 10 ps of NVT in `gmx mdrun` with the model on the GPU, and checks GROMACS's forces
+against the ASE calculator. The host needs only the `xe` kernel driver (an Arc Pro B70 needs Linux 6.17 or later).
+
+To build it yourself without the container: install the oneAPI DPC++ compiler (LibTorch's XPU CMake config needs it at
+configure time) and the PyTorch XPU wheel, then configure GROMACS `main` with `-DGMX_NNPOT=TORCH` and LibTorch on
+`CMAKE_PREFIX_PATH`. GROMACS itself can be built with or without SYCL; the model runs on the GPU through LibTorch either
+way. At run time, put the wheel's `torch/lib` and the venv's `lib/` on the library path. `GMX_NN_DEVICE=cpu|gpu`
+overrides the device; by default the model runs on the first Intel GPU LibTorch sees.
+
+Your own system: export the model with `scripts/gmx/export_gmx_mace.py`, then in the `.mdp` set `nnpot-active = yes`,
+`nnpot-modelfile`, `nnpot-input-group` (the atoms MACE handles) and the inputs and
+`nnpot-pair-cutoff` shown in `scripts/gmx/make_si_system.py`. MACE-MP-0 is trained on inorganic materials; for molecules
+use a model trained for them, and check its license.
+
+Older builds: [`patches/gromacs-2026.3-nnpot-xpu.patch`](patches/gromacs-2026.3-nnpot-xpu.patch) adds the same
+support to the 2026.3 release tarball (`scripts/gmx/build-gmx-nnpot-{xpu,cuda}.sh`); [`upstream/gromacs/`](upstream/gromacs/)
+keeps the patches as submitted and their verification record.
 
 ![GROMACS NVT on Si512 with NNPot on the Arc and on the A5000](docs/img/gromacs_nvt.png)
 
@@ -96,8 +114,9 @@ force cross-check against the ASE calculator.
 | `scripts/mace_fp64.py`, `mace_scale.py`, `mace_forces.py` | fp64 lane, size scaling, first probe |
 | `scripts/md_visual.py`, `scripts/plots/` | the MD runs behind the animations, and the figure and trajectory renderers (`make_figures.py`, `render_traj.py`) |
 | `scripts/run_b70_chain.sh`, `run_cuda_chain.sh` | the full lane on each card (paths via `MACE_ARC_ROOT`) |
+| `pipeline/` | container and runner: GROMACS `main` + MACE on an Intel GPU, end to end |
 | `scripts/gmx/` | GROMACS export, test case, cross-check, builds |
-| `upstream/gromacs/` | the two upstream patches, verification record, end-to-end reproduction of the fix |
+| `upstream/gromacs/` | the upstream patches as submitted, verification record, end-to-end reproduction of the fix |
 | `patches/` | combined patch for the GROMACS 2026.3 release |
 | `docs/FINDINGS.md` | the engineering record, seven findings |
 | `results/` | raw logs, force arrays, GROMACS cases; `results/miner-on/` is a busy-host calibration, see Finding 4 |
@@ -115,7 +134,7 @@ python scripts/mace_compare.py results/ab b70 a5000 cpu
 Figures: `python scripts/plots/make_figures.py` rebuilds `docs/img/*.png` from `results/`; the animations come from
 `scripts/md_visual.py` on the GPU (writes `results/visual/*.extxyz`, not committed) and `scripts/plots/render_traj.py`.
 
-GROMACS: build with the script for your tier, then `export_gmx_mace.py` → `make_si_system.py` → `run_case.sh` → `compare_gmx.py`.
+GROMACS: `pipeline/run.sh` (the steps it runs: `export_gmx_mace.py` → `make_si_system.py` → `run_case.sh` → `compare_gmx.py`).
 
 ## Related
 

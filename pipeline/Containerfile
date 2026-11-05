@@ -1,0 +1,70 @@
+# GROMACS (main) + MACE on an Intel GPU, from public sources only: Ubuntu 26.04, Intel's GPU compute
+# runtime, the oneAPI DPC++ compiler, the PyTorch XPU wheel, mace-torch, and unpatched GROMACS main.
+# The kernel driver (xe) stays on the host; only /dev/dri goes into the container.
+#   build: podman build -t gmx-mace-xpu pipeline        (or docker build)
+#   run:   pipeline/run.sh                              (export the model, build a test system, run, check)
+FROM docker.io/library/ubuntu:26.04
+ARG DEBIAN_FRONTEND=noninteractive
+ARG NEO=26.35.39758.10
+ARG NEO_SUMS=ww35.sum
+ARG IGC=2.41.5
+ARG IGC_BUILD=22716
+ARG GMM=22.10.0
+ARG ONEAPI=2026.1
+ARG TORCH=2.14.1
+ARG MACE=0.3.16
+ARG GROMACS_REF=main
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl gnupg build-essential cmake ninja-build pkg-config git \
+      python3 python3-dev python3-venv libfftw3-dev libze1 ocl-icd-libopencl1 clinfo \
+ && rm -rf /var/lib/apt/lists/*
+
+# GPU compute runtime (Level Zero) from Intel's GitHub releases, checked against the release's sum file
+RUN mkdir /tmp/neo && cd /tmp/neo \
+ && neo="https://github.com/intel/compute-runtime/releases/download/${NEO}" \
+ && igc="https://github.com/intel/intel-graphics-compiler/releases/download/v${IGC}" \
+ && for u in "$igc/intel-igc-core-2_${IGC}+${IGC_BUILD}_amd64.deb" \
+             "$igc/intel-igc-opencl-2_${IGC}+${IGC_BUILD}_amd64.deb" \
+             "$neo/intel-ocloc_${NEO}-0_amd64.deb" \
+             "$neo/intel-opencl-icd_${NEO}-0_amd64.deb" \
+             "$neo/libigdgmm12_${GMM}_amd64.deb" \
+             "$neo/libze-intel-gpu1_${NEO}-0_amd64.deb" \
+             "$neo/${NEO_SUMS}"; do curl -fsSLO "$u"; done \
+ && sha256sum -c --ignore-missing "${NEO_SUMS}" | tee check.txt \
+ && [ "$(grep -c ': OK$' check.txt)" -ge 4 ] \
+ && dpkg -i *.deb && cd / && rm -rf /tmp/neo
+
+# oneAPI DPC++ compiler: LibTorch's XPU CMake config needs it at configure time, even though
+# GROMACS itself is built here without SYCL (the model runs on the GPU through LibTorch).
+RUN curl -fsSL https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+      | gpg --dearmor -o /usr/share/keyrings/oneapi-archive-keyring.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+      > /etc/apt/sources.list.d/oneAPI.list \
+ && apt-get update && apt-get install -y --no-install-recommends intel-oneapi-compiler-dpcpp-cpp-${ONEAPI} \
+ && rm -rf /var/lib/apt/lists/*
+
+# PyTorch XPU wheel (also the LibTorch GROMACS links against), MACE, ASE
+RUN python3 -m venv /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir torch==${TORCH} --index-url https://download.pytorch.org/whl/xpu \
+ && /opt/venv/bin/pip install --no-cache-dir mace-torch==${MACE} ase
+ENV PATH=/opt/venv/bin:$PATH \
+    TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
+
+# GROMACS main with the NNPot interface. Intel GPU support (!6372) and the per-target C++20 for
+# LibTorch 2.14+ (!6417) are upstream, so no patch and no C++ standard option.
+RUN git clone --filter=blob:none https://gitlab.com/gromacs/gromacs.git /src/gromacs \
+ && cd /src/gromacs && git checkout ${GROMACS_REF} && git log -1 --format='GROMACS %H %cs' | tee /opt/gromacs-commit \
+ && T=$(python3 -c 'import torch, os; print(os.path.dirname(torch.__file__))') \
+ && export CMPLR_ROOT=/opt/intel/oneapi/compiler/${ONEAPI} \
+ && cmake -S . -B /tmp/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/gromacs \
+      -DGMX_GPU=OFF -DGMX_NNPOT=TORCH -DCMAKE_PREFIX_PATH="$T" -DPython_EXECUTABLE=/opt/venv/bin/python3 \
+      -DGMX_FFT_LIBRARY=fftw3 -DGMX_MPI=OFF -DGMX_OPENMP=ON -DREGRESSIONTEST_DOWNLOAD=OFF \
+ && cmake --build /tmp/build && cmake --install /tmp/build && rm -rf /tmp/build
+
+# LibTorch's XPU libraries (and the oneAPI runtime the wheel bundles) at run time
+RUN echo "$(python3 -c 'import torch, os; print(os.path.dirname(torch.__file__))')/lib" > /etc/ld.so.conf.d/torch.conf \
+ && echo /opt/venv/lib >> /etc/ld.so.conf.d/torch.conf && ldconfig
+ENV PATH=/opt/gromacs/bin:$PATH \
+    ONEAPI_DEVICE_SELECTOR=level_zero:gpu
+WORKDIR /work
